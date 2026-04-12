@@ -40,22 +40,47 @@ def load_config(
     config_path = config_path or base / "config.yaml"
     agents_path = agents_path or base / "agents.yaml"
 
-    with open(config_path) as f:
-        raw_config = yaml.safe_load(f)
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"config.yaml not found at {config_path}. "
+            "Run from the project root or pass a valid --config path."
+        )
+    if not agents_path.exists():
+        raise FileNotFoundError(
+            f"agents.yaml not found at {agents_path}. "
+            "Run from the project root or pass a valid --agents path."
+        )
 
-    with open(agents_path) as f:
-        raw_agents = yaml.safe_load(f)
+    try:
+        with open(config_path) as f:
+            raw_config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in {config_path}: {e}") from e
 
-    model = ModelConfig(**raw_config["model"])
-    debate = DebateConfig(**raw_config["debate"])
+    try:
+        with open(agents_path) as f:
+            raw_agents = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in {agents_path}: {e}") from e
 
-    moderator_data = raw_agents["moderator"]
-    moderator = AgentPersona(
-        name=moderator_data["name"],
-        system_prompt=moderator_data["system_prompt"],
-    )
+    try:
+        model = ModelConfig(**raw_config["model"])
+        debate = DebateConfig(**raw_config["debate"])
+    except KeyError as e:
+        raise ValueError(f"Missing required section {e} in {config_path}") from e
+    except TypeError as e:
+        raise ValueError(f"Invalid field in {config_path}: {e}") from e
 
-    agents_data = raw_agents.get("agents", [])
+    try:
+        moderator_data = raw_agents["moderator"]
+        moderator = AgentPersona(
+            name=moderator_data["name"],
+            system_prompt=moderator_data["system_prompt"],
+        )
+    except KeyError as e:
+        raise ValueError(f"Missing required field {e} in moderator section of {agents_path}") from e
+
+    agents_data = raw_agents.get("agents") or []
     agents = [
         AgentPersona(name=a["name"], system_prompt=a["system_prompt"])
         for a in agents_data
@@ -65,5 +90,9 @@ def load_config(
         raise ValueError(
             f"agents.yaml must define exactly 12 agents, got {len(agents)}"
         )
+
+    names = [a.name for a in agents]
+    if len(set(names)) != len(names):
+        raise ValueError(f"Duplicate agent names found in agents.yaml: {names}")
 
     return AppConfig(model=model, debate=debate, moderator=moderator, agents=agents)
