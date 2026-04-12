@@ -4,6 +4,7 @@ from twelve_angry_agents.memory import (
     needs_summarization,
     format_transcript_for_summary,
     build_summarization_messages,
+    transcript_token_count,
 )
 
 
@@ -71,3 +72,12 @@ def test_build_summarization_messages_returns_two_messages():
     assert len(messages) == 2
     assert isinstance(messages[0], SystemMessage)
     assert isinstance(messages[1], HumanMessage)
+
+
+def test_transcript_token_count_sums_all_messages():
+    from langchain_core.messages import HumanMessage, AIMessage
+    transcript = [
+        HumanMessage(content="a" * 400),   # 100 tokens
+        AIMessage(content="b" * 200, name="The Analyst"),  # 50 tokens
+    ]
+    assert transcript_token_count(transcript) == 150
