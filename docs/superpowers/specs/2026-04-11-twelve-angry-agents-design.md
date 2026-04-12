@@ -144,6 +144,11 @@ The final verdict is always prose, not just a label. The Foreman synthesizes the
 
 All 12 agents share the same underlying Ollama model instance, differentiated purely by system prompt. Personas are defined in `config/agents.yaml` and are fully user-editable.
 
+**Model:** Gemma 4 is available on Ollama. The "E" in the model tags stands for "effective parameters" (edge-optimized variants):
+- `gemma4:e2b` — 2B effective parameters, 4 GB VRAM minimum, 128K context
+- `gemma4:e4b` — 4B effective parameters, 6 GB VRAM minimum, 128K context (recommended default)
+- Instruction-tuned variants: `gemma4:e2b-it`, `gemma4:e4b-it`
+
 | # | Name | Reasoning Lens |
 |---|------|----------------|
 | 1 | The Analyst | Pure logic and data. Dismisses anecdote, demands evidence. |
@@ -212,7 +217,7 @@ If `max_rounds` is reached without consensus, the Foreman announces a hung jury:
 ### `config/config.yaml`
 ```yaml
 model:
-  name: gemma4:4b          # any ollama-compatible model
+  name: gemma4:e4b         # gemma4:e2b (2B) or gemma4:e4b (4B) — any ollama-compatible model
   temperature: 0.7
   context_window: 128000
 
@@ -255,14 +260,14 @@ cat business_plan.txt | taa
 taa --agents my_agents.yaml "Is this architecture sound?"
 
 # override model
-taa --model gemma4:2b "Is TypeScript worth adopting?"
+taa --model gemma4:e2b "Is TypeScript worth adopting?"
 ```
 
 ### Streaming output format
 ```
 TWELVE ANGRY AGENTS
 Topic: Should I accept this job offer?
-Model: gemma4:4b
+Model: gemma4:e4b
 ──────────────────────────────────────────────────
 
 THE FOREMAN
@@ -316,7 +321,7 @@ and dilution is the critical risk to verify before signing.
 
 **Tagline:** *Run your decisions through a jury of 12 AI minds before you commit.*
 
-**README pitch:** Most people make important decisions alone or with one perspective. Twelve Angry Agents runs your decision through 12 adversarial AI personalities — a skeptic, an optimist, a devil's advocate, an ethicist, and 8 more — until they reach a unanimous verdict. Fully local. Fully private. No API costs.
+**README pitch:** Most people make important decisions alone or with one perspective. Twelve Angry Agents runs your decision through 12 adversarial AI personalities — a skeptic, an optimist, a devil's advocate, an ethicist, and 8 more — until they reach a unanimous verdict. Runs on Gemma 4 via Ollama. Fully local. Fully private. No API costs.
 
 **Key points to lead with:**
 - Works on any topic: decisions, arguments, plans, ethical dilemmas
