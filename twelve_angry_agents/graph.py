@@ -1,3 +1,4 @@
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from twelve_angry_agents.nodes.agent import agent_speak_node, blind_vote_node, vote_again_node
@@ -26,7 +27,7 @@ def route_after_agent_speak(state: DebateState) -> str:
     return "memory_check"
 
 
-def consensus_check_node(state: DebateState, config: dict) -> dict:
+def consensus_check_node(state: DebateState, config: RunnableConfig) -> dict:
     """Check votes for consensus or hung jury; update status to concluded if either."""
     from twelve_angry_agents.config import AppConfig
     cfg: AppConfig = config["configurable"]["app_config"]
