@@ -13,25 +13,46 @@ Most people make important decisions alone or with one perspective. Twelve Angry
 
 ## Installation
 
+**1. Install Ollama**
+
 ```bash
+brew install ollama      # macOS
+# or download from https://ollama.com for Linux/Windows
+```
+
+**2. Pull the model and start the server**
+
+```bash
+ollama pull gemma4:e4b   # ~9 GB — recommended
+ollama pull gemma4:e2b   # ~5 GB — use if VRAM is limited
+ollama serve
+```
+
+**3. Install Twelve Angry Agents in a virtual environment**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install twelve-angry-agents
-ollama pull gemma4:e4b
 ```
 
 ## Usage
 
 ```bash
-# Ask a question
-taa "Should I accept this job offer?"
+# Career decision with context
+taa "I've been offered a senior engineer role at an early-stage startup — 30% pay increase, significant equity, but no runway visibility beyond 18 months. I have a mortgage and a family. Should I take it?"
+
+# Architecture decision
+taa "We're considering breaking our Django monolith into microservices. The team is 6 engineers, we deploy twice a week, and our main pain point is that a bug in the payments module blocks unrelated features from shipping."
 
 # Pipe in a longer document
 cat business_plan.txt | taa
 
 # Use the smaller model (less VRAM)
-taa --model gemma4:e2b "Is this architecture sound?"
+taa --model gemma4:e2b "We're debating whether to rewrite our mobile app in React Native or keep separate iOS and Android codebases. We have 2 mobile engineers and ship features every 2 weeks."
 
 # Use custom agent personalities
-taa --agents my_agents.yaml "Should we pivot?"
+taa --agents my_agents.yaml "Should we pivot from B2C to B2B?"
 ```
 
 ## How It Works
