@@ -77,12 +77,18 @@ def build_deliberation_messages(
 def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     """All 12 agents cast their initial blind vote. No peer arguments visible."""
     from langchain_ollama import ChatOllama
+    from rich.console import Console
+    from rich.rule import Rule
+
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    console = Console()
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
     votes = {}
     transcript = list(state["transcript"])
+
+    console.print(Rule("[bold]BLIND VOTE[/bold]"))
 
     for agent in cfg.agents:
         messages = build_blind_vote_messages(
@@ -94,6 +100,14 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
         vote = extract_vote(response.content, valid_options)
         votes[agent.name] = vote
         transcript.append(AIMessage(content=response.content, name=agent.name))
+        console.print(f"  {agent.name:<28} → {vote}")
+
+    # Print tally
+    tally = {opt: sum(1 for v in votes.values() if v == opt) for opt in valid_options}
+    tally_str = ", ".join(f"{count} {opt}" for opt, count in tally.items())
+    all_same = len(set(votes.values())) == 1
+    verdict_label = "unanimous — no deliberation needed" if all_same else "deliberation begins"
+    console.print(f"\n  Vote: {tally_str} — {verdict_label}\n")
 
     return {
         "votes": votes,
