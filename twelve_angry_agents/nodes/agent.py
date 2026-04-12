@@ -1,6 +1,7 @@
 import re
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 
 from twelve_angry_agents.config import AgentPersona, AppConfig
 from twelve_angry_agents.state import DebateState
@@ -73,7 +74,7 @@ def build_deliberation_messages(
     ]
 
 
-def blind_vote_node(state: DebateState, config: dict) -> dict:
+def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     """All 12 agents cast their initial blind vote. No peer arguments visible."""
     from langchain_ollama import ChatOllama
     cfg: AppConfig = config["configurable"]["app_config"]
@@ -102,7 +103,7 @@ def blind_vote_node(state: DebateState, config: dict) -> dict:
     }
 
 
-def agent_speak_node(state: DebateState, config: dict) -> dict:
+def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     """Current agent speaks during deliberation. Streams output to console."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
@@ -150,7 +151,7 @@ def agent_speak_node(state: DebateState, config: dict) -> dict:
     }
 
 
-def vote_again_node(state: DebateState, config: dict) -> dict:
+def vote_again_node(state: DebateState, config: RunnableConfig) -> dict:
     """Display re-vote table after a deliberation round. Votes already updated by agent_speak_node."""
     from rich.console import Console
     from rich.table import Table

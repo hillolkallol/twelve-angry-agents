@@ -3,6 +3,7 @@ import random
 import re
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 
 from twelve_angry_agents.config import AgentPersona, AppConfig
 from twelve_angry_agents.memory import (
@@ -90,7 +91,7 @@ def build_foreman_close_messages(
     ]
 
 
-def context_gather_node(state: DebateState, config: dict) -> dict:
+def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
     """Foreman checks if topic has enough context; asks CLI questions if needed."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
@@ -130,7 +131,7 @@ def context_gather_node(state: DebateState, config: dict) -> dict:
     return {"enriched_topic": enriched, "status": "voting"}
 
 
-def moderator_open_node(state: DebateState, config: dict) -> dict:
+def moderator_open_node(state: DebateState, config: RunnableConfig) -> dict:
     """Foreman sets verdict framing and announces the debate opening."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
@@ -154,7 +155,7 @@ def moderator_open_node(state: DebateState, config: dict) -> dict:
     return {"verdict_framing": verdict_framing, "status": "voting"}
 
 
-def moderator_deliberate_node(state: DebateState, config: dict) -> dict:
+def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dict:
     """Foreman randomizes speaking order for this deliberation round."""
     from rich.console import Console
 
@@ -177,7 +178,7 @@ def moderator_deliberate_node(state: DebateState, config: dict) -> dict:
     }
 
 
-def memory_check_node(state: DebateState, config: dict) -> dict:
+def memory_check_node(state: DebateState, config: RunnableConfig) -> dict:
     """After a full round, check if transcript needs summarization."""
     from langchain_ollama import ChatOllama
 
@@ -207,7 +208,7 @@ def memory_check_node(state: DebateState, config: dict) -> dict:
     }
 
 
-def moderator_close_node(state: DebateState, config: dict) -> dict:
+def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
     """Foreman delivers the final verdict with reasoning."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
