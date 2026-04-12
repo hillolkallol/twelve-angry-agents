@@ -18,16 +18,13 @@ debate:
   context_summary_threshold: 0.75
 """)
 
-    agents_yaml.write_text("""
-moderator:
-  name: The Foreman
-  system_prompt: "You are a neutral moderator."
-agents:
-  - name: The Skeptic
-    system_prompt: "You question everything."
-  - name: The Analyst
-    system_prompt: "You reason from data."
-""")
+    agents_yaml.write_text(
+        "moderator:\n  name: The Foreman\n  system_prompt: \"You are a neutral moderator.\"\nagents:\n"
+        + "\n".join(
+            f"  - name: Agent{i}\n    system_prompt: \"Prompt {i}.\""
+            for i in range(12)
+        )
+    )
 
     config = load_config(config_path=config_yaml, agents_path=agents_yaml)
 
@@ -36,8 +33,8 @@ agents:
     assert config.model.temperature == 0.7
     assert config.debate.max_rounds == 50
     assert config.moderator.name == "The Foreman"
-    assert len(config.agents) == 2
-    assert config.agents[0].name == "The Skeptic"
+    assert len(config.agents) == 12
+    assert config.agents[0].name == "Agent0"
 
 
 def test_load_config_validates_agent_count(tmp_path):
