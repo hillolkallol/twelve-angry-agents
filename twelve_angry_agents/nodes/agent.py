@@ -173,4 +173,7 @@ def vote_again_node(state: DebateState, config: RunnableConfig) -> dict:
 
     console.print(table)
 
-    return {"round": state["round"] + 1}
+    return {
+        "round": state["round"] + 1,
+        "original_votes": dict(state["votes"]),  # reset baseline for next round's change detection
+    }

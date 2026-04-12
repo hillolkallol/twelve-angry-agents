@@ -36,6 +36,7 @@ def run_debate(topic: str, model: str | None, agents_path: Path | None) -> None:
         "round": 0,
         "speaking_order": [],
         "current_speaker_idx": 0,
+        "verdict": None,
         "status": "gathering",
     }
 
