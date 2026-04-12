@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from langchain_core.messages import BaseMessage
 
@@ -14,5 +14,5 @@ class DebateState(TypedDict):
     round: int                      # current deliberation round number
     speaking_order: list[str]       # randomized agent order for this round
     current_speaker_idx: int        # index into speaking_order
-    verdict: str | None             # set when consensus is reached
+    verdict: NotRequired[str | None]  # set when consensus is reached
     status: Literal["gathering", "voting", "deliberating", "concluded"]

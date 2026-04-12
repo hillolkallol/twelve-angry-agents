@@ -31,3 +31,8 @@ def test_debate_state_can_be_constructed():
     }
     assert state["topic"] == "Should I quit my job?"
     assert state["status"] == "gathering"
+    assert state["round"] == 0
+    assert state["verdict"] is None
+    assert len(state["transcript"]) == 0
+    assert len(state["speaking_order"]) == 2
+    assert state["current_speaker_idx"] == 0
