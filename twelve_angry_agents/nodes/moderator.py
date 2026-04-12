@@ -70,10 +70,10 @@ def build_foreman_close_messages(
     verdict_framing: str,
     votes: dict[str, str],
     transcript_text: str,
-    is_hung_jury: bool,
+    hung_jury: bool,
 ) -> list[BaseMessage]:
     vote_summary = "\n".join(f"- {name}: {vote}" for name, vote in votes.items())
-    hung_note = "NOTE: This is a hung jury — consensus was not reached." if is_hung_jury else ""
+    hung_note = "NOTE: This is a hung jury — consensus was not reached." if hung_jury else ""
     return [
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
@@ -231,7 +231,7 @@ def moderator_close_node(state: DebateState, config: dict) -> dict:
         verdict_framing=state["verdict_framing"],
         votes=state["votes"],
         transcript_text=transcript_text,
-        is_hung_jury=hung,
+        hung_jury=hung,
     )
 
     consensus_option = majority_vote(state["votes"])

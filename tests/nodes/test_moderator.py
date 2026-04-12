@@ -64,7 +64,7 @@ def test_build_foreman_close_messages_contains_votes():
         verdict_framing="proceed / don't proceed",
         votes=votes,
         transcript_text=transcript_text,
-        is_hung_jury=False,
+        hung_jury=False,
     )
     combined = " ".join(m.content for m in messages)
     assert "proceed" in combined
