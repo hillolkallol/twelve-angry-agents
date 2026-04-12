@@ -61,15 +61,23 @@ def build_deliberation_messages(
 
     context = "\n\n".join(context_parts) if context_parts else "No arguments yet."
 
+    # Anchor the topic in the system prompt so it is never crowded out by long transcripts
+    system_content = (
+        f"{agent.system_prompt}\n\n"
+        f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
+        f"Verdict options: {verdict_framing}\n"
+        f"Every response you give must stay focused on this specific topic and question."
+    )
+
     return [
-        SystemMessage(content=agent.system_prompt),
+        SystemMessage(content=system_content),
         HumanMessage(content=(
-            f"Topic: {enriched_topic}\n\n"
-            f"Your verdict options: {verdict_framing}\n"
-            f"Your current vote: {current_vote}\n\n"
             f"Debate so far:\n{context}\n\n"
-            f"Respond now. Start with VOTE: {options[0]} OR VOTE: {options[1]}, "
-            f"then give your argument. You may change your vote if persuaded."
+            f"Your current vote: {current_vote}\n\n"
+            f"Respond now. Your response MUST start with exactly:\n"
+            f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
+            f"Then give your argument. You may change your vote if genuinely persuaded, "
+            f"but always stay on the original debate topic."
         )),
     ]
 
