@@ -7,3 +7,7 @@ build/
 venv/
 .pytest_cache/
 *.db
+.env
+.envrc
+.idea/
+.vscode/
