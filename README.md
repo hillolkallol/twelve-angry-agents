@@ -20,12 +20,17 @@ brew install ollama      # macOS
 # or download from https://ollama.com for Linux/Windows
 ```
 
-**2. Pull the model and start the server**
+**2. Start the server and pull the model**
+
+```bash
+ollama serve             # keep this running in the background
+```
+
+Then in a separate terminal:
 
 ```bash
 ollama pull gemma4:e4b   # ~9 GB — recommended
 ollama pull gemma4:e2b   # ~5 GB — use if VRAM is limited
-ollama serve
 ```
 
 **3. Install Twelve Angry Agents in a virtual environment**
