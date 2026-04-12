@@ -7,4 +7,4 @@ model:
 debate:
   max_rounds: 50            # safety valve — debate runs as long as needed
   max_tokens_per_response: 250
-  context_summary_threshold: 0.75
+  context_summary_threshold: 0.50

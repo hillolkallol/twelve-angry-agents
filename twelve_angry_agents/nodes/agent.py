@@ -47,16 +47,20 @@ def build_deliberation_messages(
     transcript: list[BaseMessage],
     summary: str,
 ) -> list[BaseMessage]:
-    """Build messages for deliberation — full transcript (or summary + recent) visible."""
+    """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
+
+    # Cap to the most recent 2 rounds (24 messages) to prevent OOM on small models.
+    # Older context is covered by the running summary.
+    recent = [m for m in transcript if not isinstance(m, SystemMessage)][-24:]
+
     context_parts = []
     if summary:
         context_parts.append(f"[Previous rounds summary]\n{summary}")
-    if transcript:
+    if recent:
         context_parts.append("[Recent debate]\n" + "\n\n".join(
             f"{getattr(m, 'name', 'Unknown')}: {m.content}"
-            for m in transcript
-            if not isinstance(m, SystemMessage)
+            for m in recent
         ))
 
     context = "\n\n".join(context_parts) if context_parts else "No arguments yet."
