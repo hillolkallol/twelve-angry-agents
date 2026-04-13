@@ -81,7 +81,7 @@ def test_build_context_check_messages_contains_topic():
     assert "quit" in combined
 
 
-def test_build_foreman_probe_messages_targets_minority():
+def test_build_foreman_probe_messages_asks_whole_jury():
     cfg = make_moderator_config()
     votes = {"Agent0": "proceed", "Agent1": "proceed", "Agent2": "don't proceed"}
     messages = build_foreman_probe_messages(
@@ -91,7 +91,12 @@ def test_build_foreman_probe_messages_targets_minority():
         votes=votes,
         summary="",
     )
-    combined = " ".join(m.content for m in messages)
-    # minority agent should be mentioned as target
-    assert "Agent2" in combined
-    assert "quit" in combined
+    human_content = messages[1].content
+    # instruction must NOT tell the LLM to address specific agents by name
+    assert "Address it to" not in human_content
+    assert "targets" not in human_content
+    # instruction must tell the LLM to ask the whole jury
+    assert "whole jury" in human_content
+    # topic and vote context should still be present
+    assert "quit" in human_content
+    assert "split" in human_content

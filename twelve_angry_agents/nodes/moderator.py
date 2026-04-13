@@ -162,11 +162,13 @@ def build_foreman_probe_messages(
     votes: dict[str, str],
     summary: str,
 ) -> list[BaseMessage]:
-    """Build messages for the Foreman to generate a targeted probe question."""
+    """Build messages for the Foreman to generate a group probe question.
+
+    The question is directed at the full jury — not individual agents by name —
+    because the speaking order is random and named agents may not respond first,
+    making targeted questions confusing.
+    """
     vote_lines = "\n".join(f"- {name}: {vote}" for name, vote in votes.items())
-    majority = max(set(votes.values()), key=list(votes.values()).count)
-    minority_agents = [name for name, vote in votes.items() if vote != majority]
-    targets = ", ".join(minority_agents[:3]) if minority_agents else "the jury"
     context_hint = f"\n[Summary of earlier rounds]\n{summary}" if summary else ""
     return [
         SystemMessage(content=moderator.system_prompt),
@@ -175,10 +177,11 @@ def build_foreman_probe_messages(
             f"Verdict options: {verdict_framing}\n"
             f"Current votes:\n{vote_lines}\n"
             f"{context_hint}\n\n"
-            f"The jury is split. As Foreman, pose ONE short, sharp follow-up question "
-            f"to move the debate forward. Address it to {targets} by name if relevant. "
-            f"Examples: 'The Skeptic, what specific evidence would change your mind?' "
-            f"or 'Can the Optimist and the Pessimist address the financial risk directly?'\n"
+            f"The jury is split. As Foreman, pose ONE short, sharp question to the whole jury "
+            f"to move the debate forward. Do NOT name or single out individual jury members — "
+            f"the question must be answerable by anyone. "
+            f"Examples: 'What specific evidence would justify accepting this level of risk?' "
+            f"or 'Is the 18-month runway a hard deadline or a soft one, and does that change the calculus?'\n"
             f"Output ONLY the question — one sentence, no preamble."
         )),
     ]
@@ -194,7 +197,20 @@ def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dic
     console = Console()
 
     agent_names = [a.name for a in cfg.agents]
-    speaking_order = random.sample(agent_names, len(agent_names))
+
+    # Put minority-vote agents first so they speak early each round.
+    # This ensures the agents with the most to defend open the round
+    # rather than being crowded to the end after the majority has spoken.
+    if state["votes"]:
+        majority = max(set(state["votes"].values()), key=list(state["votes"].values()).count)
+        minority = [n for n in agent_names if state["votes"].get(n) != majority]
+        majority_names = [n for n in agent_names if state["votes"].get(n) == majority]
+        speaking_order = (
+            random.sample(minority, len(minority))
+            + random.sample(majority_names, len(majority_names))
+        )
+    else:
+        speaking_order = random.sample(agent_names, len(agent_names))
 
     options = extract_vote_options(state["verdict_framing"])
     tally = {opt: sum(1 for v in state["votes"].values() if v == opt) for opt in options}
