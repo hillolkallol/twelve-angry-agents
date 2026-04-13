@@ -4,6 +4,7 @@ from twelve_angry_agents.config import AgentPersona, AppConfig, DebateConfig, Mo
 from twelve_angry_agents.nodes.agent import (
     extract_vote,
     build_blind_vote_messages,
+    build_clarify_vote_messages,
     build_deliberation_messages,
 )
 
@@ -57,6 +58,23 @@ def test_extract_vote_first_line_no_fallback():
 def test_extract_vote_bold_first_line_fallback():
     response = "**Don't proceed**\n\nThe risk is unacceptable."
     assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_build_clarify_vote_messages_appends_correction():
+    prior = [
+        SystemMessage(content="You are skeptical."),
+        HumanMessage(content="Topic: Should I quit?"),
+    ]
+    messages = build_clarify_vote_messages(
+        prior_messages=prior,
+        prior_response="I think the risk is too high overall.",
+        verdict_framing="proceed / don't proceed",
+    )
+    # prior messages + AI echo + clarification HumanMessage
+    assert len(messages) == 4
+    assert isinstance(messages[-1], HumanMessage)
+    assert "VOTE: proceed" in messages[-1].content
+    assert "VOTE: don't proceed" in messages[-1].content
 
 
 def test_build_blind_vote_messages_contains_topic():
