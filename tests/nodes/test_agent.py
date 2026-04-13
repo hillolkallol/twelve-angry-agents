@@ -224,3 +224,33 @@ def test_build_deliberation_messages_no_votes_param_still_works():
     )
     combined = " ".join(m.content for m in messages)
     assert "opposing your position" not in combined
+
+
+def test_build_deliberation_messages_includes_moderator_question():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+        moderator_question="The Skeptic, what evidence would change your mind?",
+    )
+    human_content = messages[1].content
+    assert "THE FOREMAN ASKS" in human_content
+    assert "what evidence would change your mind" in human_content
+
+
+def test_build_deliberation_messages_no_foreman_section_when_no_question():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+    )
+    human_content = messages[1].content
+    assert "THE FOREMAN ASKS" not in human_content
