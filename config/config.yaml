@@ -5,6 +5,6 @@ model:
   context_window: 128000    # set to your model's actual context window (check: ollama show <model>)
 
 debate:
-  max_rounds: 5             # agents now hold positions more firmly; 5 rounds surfaces the key arguments
+  max_rounds: 5             # override with --max-rounds on the CLI
   max_tokens_per_response: 250
   context_summary_threshold: 0.50

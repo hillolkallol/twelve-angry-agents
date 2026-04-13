@@ -54,6 +54,16 @@ def test_cli_accepts_output_flag():
     assert "debate.txt" in str(call_kwargs)
 
 
+def test_cli_accepts_max_rounds_flag():
+    runner = CliRunner()
+    with patch("twelve_angry_agents.cli.run_debate") as mock_run:
+        mock_run.return_value = None
+        result = runner.invoke(main, ["--max-rounds", "10", "Topic"])
+    assert result.exit_code == 0
+    call_kwargs = mock_run.call_args
+    assert "10" in str(call_kwargs)
+
+
 def test_save_transcript_writes_file(tmp_path):
     output_path = tmp_path / "debate.txt"
     state = {

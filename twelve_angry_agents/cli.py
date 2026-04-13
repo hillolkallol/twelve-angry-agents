@@ -41,6 +41,7 @@ def run_debate(
     model: str | None,
     agents_path: Path | None,
     output_path: Path | None,
+    max_rounds: int | None,
 ) -> None:
     """Build config, initialize state, and run the debate graph."""
     console = Console()
@@ -48,6 +49,8 @@ def run_debate(
     config = load_config(agents_path=agents_path)
     if model:
         config.model.name = model
+    if max_rounds is not None:
+        config.debate.max_rounds = max_rounds
 
     console.print(Rule("[bold]TWELVE ANGRY AGENTS[/bold]"))
     console.print(f"Topic: {topic}")
@@ -113,11 +116,19 @@ def run_debate(
     type=click.Path(path_type=Path),
     help="Save full debate transcript to a file (e.g. debate.txt)",
 )
+@click.option(
+    "--max-rounds",
+    "max_rounds",
+    default=None,
+    type=int,
+    help="Maximum deliberation rounds before a hung jury (default: 5)",
+)
 def main(
     topic: str | None,
     model: str | None,
     agents_path: Path | None,
     output_path: Path | None,
+    max_rounds: int | None,
 ) -> None:
     """Run your topic through a jury of 12 AI minds.\n
     \b
@@ -136,4 +147,4 @@ def main(
     if not topic:
         raise click.UsageError("Topic cannot be empty.")
 
-    run_debate(topic=topic, model=model, agents_path=agents_path, output_path=output_path)
+    run_debate(topic=topic, model=model, agents_path=agents_path, output_path=output_path, max_rounds=max_rounds)
