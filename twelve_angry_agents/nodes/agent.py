@@ -221,15 +221,33 @@ def build_deliberation_messages(
         f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
-        f"Every response you give must stay focused on this specific topic and question."
+        f"Speak like a real person in a heated discussion — direct, conversational, no bullet points, "
+        f"no formal preamble. Every response must stay focused on this specific topic."
     )
 
     engagement_instruction = (
-        "When opposing agents are listed above, refer to them by name, quote or "
-        "paraphrase their argument, and explain specifically why you agree or disagree."
+        "Engage with the opposing agents listed above — call them out by name, push back on their "
+        "specific claim, or concede a point if they've got it right."
         if opponents_text else
-        "Make your argument clearly and directly."
+        "Make your point directly."
     )
+
+    # Pull the prior round count so agents know how many times they've already spoken
+    prior_rounds = len(own_history)
+    if prior_rounds > 0:
+        # Summarise their last argument in one line so they can reference it as a tl;dr
+        last_arg_snippet = own_history[-1][:120].rstrip()
+        if len(own_history[-1]) > 120:
+            last_arg_snippet += "…"
+        no_repeat_instruction = (
+            f"You've already spoken {prior_rounds} time(s). "
+            f"If you're still making the same point, open with: "
+            f"'I've already said this — in short: [{last_arg_snippet}]' "
+            f"then immediately move to something NEW: respond to what an opponent just said, "
+            f"add a fresh angle, or concede a point. Do not re-argue what you've already stated."
+        )
+    else:
+        no_repeat_instruction = ""
 
     foreman_section = (
         f"THE FOREMAN ASKS: {moderator_question}\n\n"
@@ -244,9 +262,10 @@ def build_deliberation_messages(
             f"{foreman_section}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
-            f"Respond now. Your response MUST start with exactly:\n"
+            f"Respond now. Start with:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
             f"{engagement_instruction} "
+            f"{no_repeat_instruction} "
             f"Hold your position unless a genuinely new argument persuades you.\n"
             f"— If you keep your vote ({current_vote}): do NOT use the phrase "
             f"'I changed my vote'. State your argument directly.\n"
@@ -327,7 +346,12 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.console import Console
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
+    llm = ChatOllama(
+        model=cfg.model.name,
+        temperature=cfg.model.temperature,
+        num_ctx=cfg.model.context_window,
+        num_predict=cfg.debate.max_tokens_per_response,
+    )
     console = Console()
 
     idx = state["current_speaker_idx"]
