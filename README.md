@@ -1,6 +1,7 @@
 # Twelve Angry Agents
 
 [![CI](https://github.com/hillolkallol/twelve-angry-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/hillolkallol/twelve-angry-agents/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/twelve-angry-agents)](https://pypi.org/project/twelve-angry-agents/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black)](https://ollama.com)
