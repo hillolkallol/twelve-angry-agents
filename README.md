@@ -1,5 +1,10 @@
 # Twelve Angry Agents
 
+[![CI](https://github.com/hillolkallol/twelve-angry-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/hillolkallol/twelve-angry-agents/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey)](https://creativecommons.org/licenses/by-nc/4.0/)
+[![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black)](https://ollama.com)
+
 > Run your decisions through a jury of 12 AI minds before you commit.
 
 Most people make important decisions alone or with one perspective. Twelve Angry Agents runs your topic through 12 AI personalities — a skeptic, an optimist, a devil's advocate, an ethicist, and 8 more — debating until they reach a unanimous verdict. Inspired by *12 Angry Men*.
