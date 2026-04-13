@@ -1,6 +1,6 @@
 [project]
 name = "twelve-angry-agents"
-version = "0.1.0"
+version = "1.0.0"
 description = "Run your decisions through a jury of 12 AI minds before you commit."
 license = {text = "CC-BY-NC-4.0"}
 requires-python = ">=3.11"
