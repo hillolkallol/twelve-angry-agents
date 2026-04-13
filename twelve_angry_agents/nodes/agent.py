@@ -113,6 +113,7 @@ def build_deliberation_messages(
     current_vote: str,
     transcript: list[BaseMessage],
     summary: str,
+    votes: dict[str, str] | None = None,
 ) -> list[BaseMessage]:
     """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
@@ -146,6 +147,35 @@ def build_deliberation_messages(
         )
         own_history_text = f"Your previous arguments (for reference):\n{entries}\n\n"
 
+    # Identify opponents — agents currently on the other side — and surface their
+    # most recent argument so this agent can directly engage with them by name.
+    opponents_text = ""
+    if votes and current_vote and current_vote != "undecided":
+        opposing_names = [
+            name for name, vote in votes.items()
+            if vote != current_vote and vote != "undecided" and name != agent.name
+        ]
+        if opposing_names:
+            # For each opponent, find their most recent message in the transcript
+            opponent_snippets = []
+            for name in opposing_names:
+                msgs = [
+                    m.content for m in transcript
+                    if isinstance(m, AIMessage) and getattr(m, "name", "") == name
+                ]
+                if msgs:
+                    # Trim to 300 chars so we don't blow up the prompt
+                    snippet = msgs[-1][:300].rstrip()
+                    if len(msgs[-1]) > 300:
+                        snippet += "…"
+                    opponent_snippets.append(f"  {name}: {snippet}")
+            if opponent_snippets:
+                opponents_text = (
+                    "Agents currently opposing your position (address them directly):\n"
+                    + "\n".join(opponent_snippets)
+                    + "\n\n"
+                )
+
     # Anchor the topic in the system prompt so it is never crowded out by long transcripts
     system_content = (
         f"{agent.system_prompt}\n\n"
@@ -154,14 +184,23 @@ def build_deliberation_messages(
         f"Every response you give must stay focused on this specific topic and question."
     )
 
+    engagement_instruction = (
+        "When opposing agents are listed above, refer to them by name, quote or "
+        "paraphrase their argument, and explain specifically why you agree or disagree."
+        if opponents_text else
+        "Make your argument clearly and directly."
+    )
+
     return [
         SystemMessage(content=system_content),
         HumanMessage(content=(
             f"{own_history_text}"
+            f"{opponents_text}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
             f"Respond now. Your response MUST start with exactly:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
+            f"{engagement_instruction} "
             f"Hold your position unless a genuinely new argument persuades you. "
             f"If you change your vote, explicitly state what changed your mind."
         )),
@@ -241,6 +280,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         current_vote=current_vote,
         transcript=state["transcript"],
         summary=state["summary"],
+        votes=state["votes"],
     )
 
     full_response = ""
