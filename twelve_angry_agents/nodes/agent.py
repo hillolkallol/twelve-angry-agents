@@ -117,8 +117,14 @@ def build_deliberation_messages(
     """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
 
-    # Cap to the most recent 2 rounds (24 messages) to prevent OOM on small models.
-    # Older context is covered by the running summary.
+    # Extract this agent's own prior statements from the full transcript (not capped).
+    # Shown separately so they are not crowded out by the shared debate context.
+    own_history = [
+        m.content for m in transcript
+        if isinstance(m, AIMessage) and getattr(m, "name", "") == agent.name
+    ]
+
+    # Cap shared transcript to the most recent 2 rounds (24 messages) to prevent OOM.
     recent = [m for m in transcript if not isinstance(m, SystemMessage)][-24:]
 
     context_parts = []
@@ -132,6 +138,14 @@ def build_deliberation_messages(
 
     context = "\n\n".join(context_parts) if context_parts else "No arguments yet."
 
+    # Build your own history block so the agent can anchor to its own reasoning
+    own_history_text = ""
+    if own_history:
+        entries = "\n\n".join(
+            f"[Round {i + 1}] {content}" for i, content in enumerate(own_history)
+        )
+        own_history_text = f"Your previous arguments (for reference):\n{entries}\n\n"
+
     # Anchor the topic in the system prompt so it is never crowded out by long transcripts
     system_content = (
         f"{agent.system_prompt}\n\n"
@@ -143,12 +157,13 @@ def build_deliberation_messages(
     return [
         SystemMessage(content=system_content),
         HumanMessage(content=(
+            f"{own_history_text}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
             f"Respond now. Your response MUST start with exactly:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
-            f"Then give your argument. You may change your vote if genuinely persuaded, "
-            f"but always stay on the original debate topic."
+            f"Hold your position unless a genuinely new argument persuades you. "
+            f"If you change your vote, explicitly state what changed your mind."
         )),
     ]
 
