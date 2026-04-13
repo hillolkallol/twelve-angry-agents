@@ -29,8 +29,8 @@ ollama serve             # keep this running in the background
 Then in a separate terminal:
 
 ```bash
-ollama pull gemma4:e4b   # ~9 GB — recommended
-ollama pull gemma4:e2b   # ~5 GB — use if VRAM is limited
+ollama pull gemma4:e2b   # ~5 GB — default
+ollama pull gemma4:e4b   # ~9 GB — higher quality, optional
 ```
 
 **3. Install Twelve Angry Agents in a virtual environment**
@@ -53,8 +53,8 @@ taa "We're considering breaking our Django monolith into microservices. The team
 # Pipe in a longer document
 cat business_plan.txt | taa
 
-# Use the smaller model (less VRAM)
-taa --model gemma4:e2b "We're debating whether to rewrite our mobile app in React Native or keep separate iOS and Android codebases. We have 2 mobile engineers and ship features every 2 weeks."
+# Use the larger model for higher quality
+taa --model gemma4:e4b "We're debating whether to rewrite our mobile app in React Native or keep separate iOS and Android codebases. We have 2 mobile engineers and ship features every 2 weeks."
 
 # Use custom agent personalities
 taa --agents my_agents.yaml "Should we pivot from B2C to B2B?"
