@@ -40,10 +40,20 @@ def run_debate(topic: str, model: str | None, agents_path: Path | None) -> None:
         "status": "gathering",
     }
 
-    graph.invoke(
-        initial_state,
-        config={"configurable": {"app_config": config}},
-    )
+    try:
+        graph.invoke(
+            initial_state,
+            config={"configurable": {"app_config": config}},
+        )
+    except Exception as e:
+        err = str(e).lower()
+        if "connection refused" in err or "connect" in err or "ollama" in err:
+            raise click.ClickException(
+                "Cannot reach Ollama. Make sure it is running:\n\n"
+                "  ollama serve\n\n"
+                f"Then try again. (Original error: {e})"
+            ) from e
+        raise
 
 
 @click.command()
