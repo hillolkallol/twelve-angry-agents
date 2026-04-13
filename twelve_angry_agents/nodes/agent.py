@@ -87,6 +87,28 @@ def build_clarify_vote_messages(
     ]
 
 
+def missing_change_explanation(response: str) -> bool:
+    """Return True if the response changed a vote but omitted a reason."""
+    return "i changed my vote" not in response.lower()
+
+
+def build_clarify_change_messages(
+    prior_messages: list[BaseMessage],
+    prior_response: str,
+    old_vote: str,
+    new_vote: str,
+) -> list[BaseMessage]:
+    """Ask the agent to explain why they switched votes."""
+    return prior_messages + [
+        AIMessage(content=prior_response),
+        HumanMessage(content=(
+            f"You switched your vote from '{old_vote}' to '{new_vote}' without explaining why.\n"
+            f"Please give ONE sentence explaining what specifically changed your mind.\n"
+            f"Start with exactly: 'I changed my vote to {new_vote} because'"
+        )),
+    ]
+
+
 def build_blind_vote_messages(
     agent: AgentPersona,
     enriched_topic: str,
@@ -345,8 +367,14 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         clarify_response = llm.invoke(clarify)
         new_vote = extract_vote(clarify_response.content, valid_options)
         if new_vote != "undecided":
-            # Append the clarification so the transcript reflects the corrected vote
             full_response = full_response + f"\n[Clarified] {clarify_response.content}"
+
+    # If the agent changed their vote but gave no explanation, ask for one
+    if new_vote != "undecided" and new_vote != current_vote and missing_change_explanation(full_response):
+        clarify = build_clarify_change_messages(messages, full_response, current_vote, new_vote)
+        clarify_response = llm.invoke(clarify)
+        full_response = full_response + f"\n[Explanation] {clarify_response.content}"
+        console.print(f"  [dim][explanation requested and received][/dim]")
 
     votes = dict(state["votes"])
     votes[agent_name] = new_vote

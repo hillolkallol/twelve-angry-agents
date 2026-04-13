@@ -5,7 +5,9 @@ from twelve_angry_agents.nodes.agent import (
     extract_vote,
     build_blind_vote_messages,
     build_clarify_vote_messages,
+    build_clarify_change_messages,
     build_deliberation_messages,
+    missing_change_explanation,
 )
 
 
@@ -58,6 +60,38 @@ def test_extract_vote_first_line_no_fallback():
 def test_extract_vote_bold_first_line_fallback():
     response = "**Don't proceed**\n\nThe risk is unacceptable."
     assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_missing_change_explanation_detects_absent_reason():
+    assert missing_change_explanation("VOTE: proceed\nThis is a great opportunity.") is True
+
+
+def test_missing_change_explanation_detects_present_reason():
+    assert missing_change_explanation(
+        "VOTE: proceed\nI changed my vote to proceed because the data convinced me."
+    ) is False
+
+
+def test_missing_change_explanation_case_insensitive():
+    assert missing_change_explanation("I CHANGED MY VOTE to proceed because reasons.") is False
+
+
+def test_build_clarify_change_messages_structure():
+    prior = [
+        SystemMessage(content="You are skeptical."),
+        HumanMessage(content="Debate so far: ..."),
+    ]
+    messages = build_clarify_change_messages(
+        prior_messages=prior,
+        prior_response="VOTE: proceed\nThis opportunity is clear.",
+        old_vote="don't proceed",
+        new_vote="proceed",
+    )
+    assert len(messages) == 4
+    assert isinstance(messages[-1], HumanMessage)
+    assert "don't proceed" in messages[-1].content
+    assert "proceed" in messages[-1].content
+    assert "I changed my vote to proceed because" in messages[-1].content
 
 
 def test_build_clarify_vote_messages_appends_correction():
