@@ -63,6 +63,9 @@ taa --model gemma4:e4b "We're debating whether to rewrite our mobile app in Reac
 
 # Use custom agent personalities
 taa --agents my_agents.yaml "Should we pivot from B2C to B2B?"
+
+# Save the full debate transcript to a file
+taa --output debate.txt "Should I accept this acquisition offer?"
 ```
 
 ## How It Works
