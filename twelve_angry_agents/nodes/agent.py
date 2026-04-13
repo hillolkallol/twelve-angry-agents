@@ -279,7 +279,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.rule import Rule
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
@@ -328,7 +328,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.console import Console
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     idx = state["current_speaker_idx"]
