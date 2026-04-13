@@ -396,7 +396,7 @@ def vote_again_node(state: DebateState, config: RunnableConfig) -> dict:
     cfg: AppConfig = config["configurable"]["app_config"]
     console = Console()
 
-    table = Table(title=f"Re-Vote (Round {state['round']})", show_header=True)
+    table = Table(title=f"Re-Vote (Round {state['round'] + 1})", show_header=True)
     table.add_column("Agent", style="bold")
     table.add_column("Vote")
     table.add_column("Change")
