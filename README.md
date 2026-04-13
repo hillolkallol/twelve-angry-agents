@@ -64,6 +64,9 @@ taa --model gemma4:e4b "We're debating whether to rewrite our mobile app in Reac
 
 # Save the full debate transcript to a file
 taa --output debate.txt "Should I accept this acquisition offer?"
+
+# Run longer — allow up to 10 rounds before declaring a hung jury
+taa --max-rounds 10 "Should we raise a Series A now or wait 12 months?"
 ```
 
 ## How It Works
@@ -72,7 +75,7 @@ taa --output debate.txt "Should I accept this acquisition offer?"
 2. All 12 agents cast a **blind vote** — no peer influence
 3. If split: agents **debate sequentially**, each reading the full argument history
 4. After each round, all agents re-vote
-5. Repeat until **unanimous** (or a hung jury after 50 rounds)
+5. Repeat until **unanimous** (or a hung jury after the round limit)
 6. The Foreman delivers a **prose verdict** with the decisive arguments and key risks
 
 ## The Jury
@@ -143,7 +146,7 @@ model:
   context_window: 128000
 
 debate:
-  max_rounds: 50
+  max_rounds: 5             # override with --max-rounds on the CLI
   context_summary_threshold: 0.50
 ```
 
