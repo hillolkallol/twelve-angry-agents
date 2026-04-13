@@ -161,27 +161,33 @@ def build_foreman_probe_messages(
     verdict_framing: str,
     votes: dict[str, str],
     summary: str,
+    recent_arguments: str,
 ) -> list[BaseMessage]:
-    """Build messages for the Foreman to generate a group probe question.
+    """Build messages for the Foreman to generate a targeted probe question.
 
     The question is directed at the full jury — not individual agents by name —
-    because the speaking order is random and named agents may not respond first,
-    making targeted questions confusing.
+    because the speaking order is random and named agents may not respond first.
+    It is grounded in the actual arguments made so far, not just the topic.
     """
     vote_lines = "\n".join(f"- {name}: {vote}" for name, vote in votes.items())
-    context_hint = f"\n[Summary of earlier rounds]\n{summary}" if summary else ""
+    context_parts = []
+    if summary:
+        context_parts.append(f"[Summary of earlier rounds]\n{summary}")
+    if recent_arguments:
+        context_parts.append(f"[Recent arguments]\n{recent_arguments}")
+    context = "\n\n".join(context_parts) if context_parts else "No arguments yet."
     return [
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n"
             f"Verdict options: {verdict_framing}\n"
-            f"Current votes:\n{vote_lines}\n"
-            f"{context_hint}\n\n"
-            f"The jury is split. As Foreman, pose ONE short, sharp question to the whole jury "
-            f"to move the debate forward. Do NOT name or single out individual jury members — "
-            f"the question must be answerable by anyone. "
-            f"Examples: 'What specific evidence would justify accepting this level of risk?' "
-            f"or 'Is the 18-month runway a hard deadline or a soft one, and does that change the calculus?'\n"
+            f"Current votes:\n{vote_lines}\n\n"
+            f"Debate so far:\n{context}\n\n"
+            f"The jury is split. Read the arguments above and identify the core point of "
+            f"disagreement — the specific claim or assumption that separates the two sides. "
+            f"Then pose ONE sharp question that cuts directly to that disagreement. "
+            f"Do NOT name individual jury members and do NOT restate the general topic. "
+            f"The question must be specific to what has actually been argued.\n"
             f"Output ONLY the question — one sentence, no preamble."
         )),
     ]
@@ -222,12 +228,22 @@ def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dic
     moderator_question = ""
     unique_votes = set(v for v in state["votes"].values() if v != "undecided")
     if len(unique_votes) > 1 and state["votes"]:
+        # Summarise the most recent argument from each side (capped to avoid prompt bloat)
+        recent_transcript = [
+            m for m in state["transcript"]
+            if isinstance(m, AIMessage)
+        ][-12:]  # last 12 messages ≈ 1 full round
+        recent_arguments = "\n\n".join(
+            f"{getattr(m, 'name', 'Unknown')}: {m.content[:200].rstrip()}{'…' if len(m.content) > 200 else ''}"
+            for m in recent_transcript
+        )
         messages = build_foreman_probe_messages(
             moderator=cfg.moderator,
             enriched_topic=state["enriched_topic"],
             verdict_framing=state["verdict_framing"],
             votes=state["votes"],
             summary=state["summary"],
+            recent_arguments=recent_arguments,
         )
         response = llm.invoke(messages)
         moderator_question = response.content.strip()
