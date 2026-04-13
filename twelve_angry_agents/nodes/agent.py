@@ -350,7 +350,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         model=cfg.model.name,
         temperature=cfg.model.temperature,
         num_ctx=cfg.model.context_window,
-        num_predict=cfg.debate.max_tokens_per_response,
+        # num_predict breaks streaming in langchain-ollama 1.1.0 (chunks return empty content)
     )
     console = Console()
 
