@@ -129,3 +129,54 @@ def test_build_deliberation_messages_includes_summary_when_present():
     )
     combined = " ".join(m.content for m in messages)
     assert "Round 1 summary" in combined
+
+
+def test_build_deliberation_messages_surfaces_opponents():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    transcript = [
+        AIMessage(content="VOTE: proceed\nThis is a great chance to grow.", name="The Optimist"),
+    ]
+    votes = {"The Skeptic": "don't proceed", "The Optimist": "proceed"}
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Should I quit?",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=transcript,
+        summary="",
+        votes=votes,
+    )
+    combined = " ".join(m.content for m in messages)
+    assert "The Optimist" in combined
+    assert "great chance to grow" in combined
+
+
+def test_build_deliberation_messages_no_opponents_when_unanimous():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    votes = {"The Skeptic": "don't proceed", "The Optimist": "don't proceed"}
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Should I quit?",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+        votes=votes,
+    )
+    combined = " ".join(m.content for m in messages)
+    assert "opposing your position" not in combined
+
+
+def test_build_deliberation_messages_no_votes_param_still_works():
+    # Backwards-compatible: votes defaults to None, no opponents section
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+    )
+    combined = " ".join(m.content for m in messages)
+    assert "opposing your position" not in combined
