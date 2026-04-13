@@ -6,6 +6,7 @@ from twelve_angry_agents.nodes.moderator import (
     extract_vote_options,
     build_foreman_open_messages,
     build_foreman_close_messages,
+    build_foreman_probe_messages,
     build_context_check_messages,
 )
 
@@ -77,4 +78,20 @@ def test_build_context_check_messages_contains_topic():
         topic="Should I quit?",
     )
     combined = " ".join(m.content for m in messages)
+    assert "quit" in combined
+
+
+def test_build_foreman_probe_messages_targets_minority():
+    cfg = make_moderator_config()
+    votes = {"Agent0": "proceed", "Agent1": "proceed", "Agent2": "don't proceed"}
+    messages = build_foreman_probe_messages(
+        moderator=cfg.moderator,
+        enriched_topic="Should I quit?",
+        verdict_framing="proceed / don't proceed",
+        votes=votes,
+        summary="",
+    )
+    combined = " ".join(m.content for m in messages)
+    # minority agent should be mentioned as target
+    assert "Agent2" in combined
     assert "quit" in combined

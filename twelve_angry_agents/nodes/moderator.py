@@ -155,11 +155,42 @@ def moderator_open_node(state: DebateState, config: RunnableConfig) -> dict:
     return {"verdict_framing": verdict_framing, "status": "voting"}
 
 
+def build_foreman_probe_messages(
+    moderator: AgentPersona,
+    enriched_topic: str,
+    verdict_framing: str,
+    votes: dict[str, str],
+    summary: str,
+) -> list[BaseMessage]:
+    """Build messages for the Foreman to generate a targeted probe question."""
+    vote_lines = "\n".join(f"- {name}: {vote}" for name, vote in votes.items())
+    majority = max(set(votes.values()), key=list(votes.values()).count)
+    minority_agents = [name for name, vote in votes.items() if vote != majority]
+    targets = ", ".join(minority_agents[:3]) if minority_agents else "the jury"
+    context_hint = f"\n[Summary of earlier rounds]\n{summary}" if summary else ""
+    return [
+        SystemMessage(content=moderator.system_prompt),
+        HumanMessage(content=(
+            f"Topic: {enriched_topic}\n"
+            f"Verdict options: {verdict_framing}\n"
+            f"Current votes:\n{vote_lines}\n"
+            f"{context_hint}\n\n"
+            f"The jury is split. As Foreman, pose ONE short, sharp follow-up question "
+            f"to move the debate forward. Address it to {targets} by name if relevant. "
+            f"Examples: 'The Skeptic, what specific evidence would change your mind?' "
+            f"or 'Can the Optimist and the Pessimist address the financial risk directly?'\n"
+            f"Output ONLY the question — one sentence, no preamble."
+        )),
+    ]
+
+
 def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dict:
-    """Foreman randomizes speaking order for this deliberation round."""
+    """Foreman randomizes speaking order and poses a probe question for this round."""
+    from langchain_ollama import ChatOllama
     from rich.console import Console
 
     cfg: AppConfig = config["configurable"]["app_config"]
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
     console = Console()
 
     agent_names = [a.name for a in cfg.agents]
@@ -169,12 +200,28 @@ def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dic
     tally = {opt: sum(1 for v in state["votes"].values() if v == opt) for opt in options}
     tally_str = "  ".join(f"{opt}: {count}" for opt, count in tally.items())
 
-    console.print(f"\n[bold]━━━ ROUND {state['round'] + 1} ━━━[/bold]  {tally_str}\n")
+    console.print(f"\n[bold]━━━ ROUND {state['round'] + 1} ━━━[/bold]  {tally_str}")
+
+    # Generate a probe question when the jury is split
+    moderator_question = ""
+    unique_votes = set(v for v in state["votes"].values() if v != "undecided")
+    if len(unique_votes) > 1 and state["votes"]:
+        messages = build_foreman_probe_messages(
+            moderator=cfg.moderator,
+            enriched_topic=state["enriched_topic"],
+            verdict_framing=state["verdict_framing"],
+            votes=state["votes"],
+            summary=state["summary"],
+        )
+        response = llm.invoke(messages)
+        moderator_question = response.content.strip()
+        console.print(f"\n[bold]THE FOREMAN:[/bold] {moderator_question}\n")
 
     return {
         "speaking_order": speaking_order,
         "current_speaker_idx": 0,
         "status": "deliberating",
+        "moderator_question": moderator_question,
     }
 
 

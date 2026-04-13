@@ -122,6 +122,7 @@ def build_deliberation_messages(
     summary: str,
     votes: dict[str, str] | None = None,
     all_agent_names: list[str] | None = None,
+    moderator_question: str = "",
 ) -> list[BaseMessage]:
     """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
@@ -208,11 +209,17 @@ def build_deliberation_messages(
         "Make your argument clearly and directly."
     )
 
+    foreman_section = (
+        f"THE FOREMAN ASKS: {moderator_question}\n\n"
+        if moderator_question else ""
+    )
+
     return [
         SystemMessage(content=system_content),
         HumanMessage(content=(
             f"{own_history_text}"
             f"{opponents_text}"
+            f"{foreman_section}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
             f"Respond now. Your response MUST start with exactly:\n"
@@ -303,6 +310,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         summary=state["summary"],
         votes=state["votes"],
         all_agent_names=all_agent_names,
+        moderator_question=state.get("moderator_question", ""),
     )
 
     full_response = ""
