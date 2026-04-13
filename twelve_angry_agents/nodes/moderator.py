@@ -310,6 +310,14 @@ def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
     print(response.content)
     print()
 
+    console.print(Rule())
+    console.print(
+        "[dim]The jury has spoken. But these twelve minds are not you — they don't carry "
+        "your mortgage, your relationships, or your sense of what a life well-lived looks like. "
+        "Take what's useful. Leave what isn't. The decision is yours.[/dim]"
+    )
+    print()
+
     return {
         "verdict": consensus_option,
         "status": "concluded",
