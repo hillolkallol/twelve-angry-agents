@@ -1,4 +1,4 @@
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 
 from twelve_angry_agents.config import AgentPersona, AppConfig, DebateConfig, ModelConfig
 from twelve_angry_agents.nodes.moderator import (
@@ -90,13 +90,30 @@ def test_build_foreman_probe_messages_asks_whole_jury():
         verdict_framing="proceed / don't proceed",
         votes=votes,
         summary="",
+        recent_arguments="",
     )
     human_content = messages[1].content
     # instruction must NOT tell the LLM to address specific agents by name
     assert "Address it to" not in human_content
     assert "targets" not in human_content
-    # instruction must tell the LLM to ask the whole jury
-    assert "whole jury" in human_content
+    # instruction must tell the LLM to ask based on actual arguments
+    assert "core point of disagreement" in human_content
     # topic and vote context should still be present
     assert "quit" in human_content
     assert "split" in human_content
+
+
+def test_build_foreman_probe_messages_includes_recent_arguments():
+    cfg = make_moderator_config()
+    votes = {"Agent0": "proceed", "Agent1": "don't proceed"}
+    messages = build_foreman_probe_messages(
+        moderator=cfg.moderator,
+        enriched_topic="Should I quit?",
+        verdict_framing="proceed / don't proceed",
+        votes=votes,
+        summary="",
+        recent_arguments="Agent0: The equity upside is worth the risk.\nAgent1: The mortgage makes this too dangerous.",
+    )
+    human_content = messages[1].content
+    assert "equity upside" in human_content
+    assert "mortgage" in human_content
