@@ -69,6 +69,24 @@ def extract_vote(response: str, valid_options: list[str]) -> str:
     return "undecided"
 
 
+def build_clarify_vote_messages(
+    prior_messages: list[BaseMessage],
+    prior_response: str,
+    verdict_framing: str,
+) -> list[BaseMessage]:
+    """Ask the agent to restate their vote in the correct format after a failed parse."""
+    options = [o.strip() for o in verdict_framing.split("/")]
+    return prior_messages + [
+        AIMessage(content=prior_response),
+        HumanMessage(content=(
+            f"Your vote was not clear. Please restate it using exactly one of these:\n"
+            f"VOTE: {options[0]}\n"
+            f"VOTE: {options[1]}\n"
+            f"Only output the VOTE line — nothing else."
+        )),
+    ]
+
+
 def build_blind_vote_messages(
     agent: AgentPersona,
     enriched_topic: str,
@@ -159,6 +177,10 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
         )
         response = llm.invoke(messages)
         vote = extract_vote(response.content, valid_options)
+        if vote == "undecided":
+            clarify = build_clarify_vote_messages(messages, response.content, state["verdict_framing"])
+            response = llm.invoke(clarify)
+            vote = extract_vote(response.content, valid_options)
         votes[agent.name] = vote
         transcript.append(AIMessage(content=response.content, name=agent.name))
         console.print(f"  {agent.name:<28} → {vote}")
@@ -213,6 +235,14 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     print("\n")
 
     new_vote = extract_vote(full_response, valid_options)
+    if new_vote == "undecided":
+        clarify = build_clarify_vote_messages(messages, full_response, state["verdict_framing"])
+        clarify_response = llm.invoke(clarify)
+        new_vote = extract_vote(clarify_response.content, valid_options)
+        if new_vote != "undecided":
+            # Append the clarification so the transcript reflects the corrected vote
+            full_response = full_response + f"\n[Clarified] {clarify_response.content}"
+
     votes = dict(state["votes"])
     votes[agent_name] = new_vote
 
