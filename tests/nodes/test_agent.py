@@ -99,6 +99,36 @@ def test_build_blind_vote_messages_starts_with_system():
     assert isinstance(messages[0], SystemMessage)
 
 
+def test_build_blind_vote_messages_includes_own_name_and_jury():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_blind_vote_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        all_agent_names=["The Skeptic", "The Optimist", "The Analyst"],
+    )
+    system_content = messages[0].content
+    assert "Your name is The Skeptic" in system_content
+    assert "The Optimist" in system_content
+    assert "The Analyst" in system_content
+
+
+def test_build_deliberation_messages_includes_agent_name_in_system():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+        all_agent_names=["The Skeptic", "The Optimist", "The Analyst"],
+    )
+    system_content = messages[0].content
+    assert "Your name is The Skeptic" in system_content
+    assert "The Optimist" in system_content
+
+
 def test_build_deliberation_messages_includes_transcript():
     agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
     transcript = [
