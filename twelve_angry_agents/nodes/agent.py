@@ -232,6 +232,22 @@ def build_deliberation_messages(
     ]
 
 
+# 12 distinct Rich colors — one per jury seat (cycles if custom agents exceed 12)
+_AGENT_COLORS = [
+    "bright_cyan", "bright_green", "bright_yellow", "bright_magenta",
+    "bright_red", "cyan", "green", "yellow", "magenta", "red",
+    "bright_blue", "blue",
+]
+
+
+def _agent_color(cfg: "AppConfig", agent_name: str) -> str:
+    names = [a.name for a in cfg.agents]
+    try:
+        return _AGENT_COLORS[names.index(agent_name) % len(_AGENT_COLORS)]
+    except ValueError:
+        return "white"
+
+
 def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     """All 12 agents cast their initial blind vote. No peer arguments visible."""
     from langchain_ollama import ChatOllama
@@ -264,7 +280,8 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
             vote = extract_vote(response.content, valid_options)
         votes[agent.name] = vote
         transcript.append(AIMessage(content=response.content, name=agent.name))
-        console.print(f"  {agent.name:<28} → {vote}")
+        color = _agent_color(cfg, agent.name)
+        console.print(f"  [{color}]{agent.name:<28}[/{color}] → {vote}")
 
     # Print tally
     tally = {opt: sum(1 for v in votes.values() if v == opt) for opt in valid_options}
@@ -285,7 +302,6 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     """Current agent speaks during deliberation. Streams output to console."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
-    from rich.rule import Rule
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
@@ -296,10 +312,12 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     agent = next(a for a in cfg.agents if a.name == agent_name)
     current_vote = state["votes"].get(agent_name, "undecided")
     all_agent_names = [a.name for a in cfg.agents]
+    color = _agent_color(cfg, agent_name)
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
 
-    console.print(Rule(f"[bold]{agent_name}[/bold]  [dim][{current_vote}][/dim]"))
+    # Conversational header: colored name + current vote, no full-width rule
+    console.print(f"\n[bold {color}]{agent_name}[/bold {color}] [dim][{current_vote}][/dim]")
 
     messages = build_deliberation_messages(
         agent=agent,
@@ -317,7 +335,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     for chunk in llm.stream(messages):
         print(chunk.content, end="", flush=True)
         full_response += chunk.content
-    print("\n")
+    print()
 
     new_vote = extract_vote(full_response, valid_options)
     if new_vote == "undecided":
