@@ -147,6 +147,20 @@ def test_build_deliberation_messages_includes_transcript():
     assert "don't proceed" in combined
 
 
+def test_build_deliberation_messages_mind_change_instruction_present():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+    )
+    human_content = messages[1].content
+    assert "I changed my vote to" in human_content
+
+
 def test_build_deliberation_messages_includes_summary_when_present():
     agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
     messages = build_deliberation_messages(

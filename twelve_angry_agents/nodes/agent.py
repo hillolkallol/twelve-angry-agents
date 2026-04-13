@@ -219,7 +219,8 @@ def build_deliberation_messages(
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
             f"{engagement_instruction} "
             f"Hold your position unless a genuinely new argument persuades you. "
-            f"If you change your vote, explicitly state what changed your mind."
+            f"If you change your vote, you MUST begin your explanation with: "
+            f"'I changed my vote to [option] because [specific reason].'"
         )),
     ]
 
