@@ -97,7 +97,7 @@ def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.console import Console
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     messages = build_context_check_messages(
@@ -138,7 +138,7 @@ def moderator_open_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.rule import Rule
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     messages = build_foreman_open_messages(
@@ -193,7 +193,7 @@ def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dic
     from rich.console import Console
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     agent_names = [a.name for a in cfg.agents]
@@ -255,7 +255,7 @@ def memory_check_node(state: DebateState, config: RunnableConfig) -> dict:
     ):
         return {}
 
-    llm = ChatOllama(model=cfg.model.name, temperature=0.3)
+    llm = ChatOllama(model=cfg.model.name, temperature=0.3, num_ctx=cfg.model.context_window)
     summary_messages = build_summarization_messages(state["transcript"])
     response = llm.invoke(summary_messages)
 
@@ -278,7 +278,7 @@ def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.rule import Rule
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
+    llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
     console = Console()
 
     hung = is_hung_jury(state["round"], cfg.debate.max_rounds)
