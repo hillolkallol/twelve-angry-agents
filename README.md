@@ -62,9 +62,6 @@ cat business_plan.txt | taa
 # Use the larger model for higher quality
 taa --model gemma4:e4b "We're debating whether to rewrite our mobile app in React Native or keep separate iOS and Android codebases. We have 2 mobile engineers and ship features every 2 weeks."
 
-# Use custom agent personalities
-taa --agents my_agents.yaml "Should we pivot from B2C to B2B?"
-
 # Save the full debate transcript to a file
 taa --output debate.txt "Should I accept this acquisition offer?"
 ```
@@ -95,11 +92,60 @@ taa --output debate.txt "Should I accept this acquisition offer?"
 | The Realist | What's actually true right now |
 | The Contrarian | Last holdout — hardest to move |
 
-## Customization
+## Custom Agent Personalities
 
-Edit `config/agents.yaml` to change any agent's personality or system prompt. The config validates that exactly 12 agents are defined.
+You can replace the default jury with any 12 personas you want — domain experts, historical figures, fictional characters, or role-specific reviewers.
 
-Edit `config/config.yaml` to change the model, temperature, or debate limits.
+Create a `my_agents.yaml` file with exactly 12 agents and a moderator:
+
+```yaml
+moderator:
+  name: The Chair
+  system_prompt: >
+    You are a neutral facilitator. You have no opinion on the topic.
+    Your only job is to manage the debate process fairly and ensure
+    all voices are heard.
+
+agents:
+  - name: The CFO
+    system_prompt: >
+      You evaluate every decision through the lens of financial impact,
+      unit economics, and capital efficiency. You demand clear ROI.
+      State your VOTE clearly at the start: VOTE: [option].
+      Keep your response under 200 words.
+
+  - name: The CTO
+    system_prompt: >
+      You focus on technical feasibility, system complexity, and
+      engineering risk. You push back on unrealistic timelines.
+      State your VOTE clearly at the start: VOTE: [option].
+      Keep your response under 200 words.
+
+  # ... 10 more agents
+```
+
+Then run it:
+
+```bash
+taa --agents my_agents.yaml "Should we rebuild the platform or migrate incrementally?"
+```
+
+The config validates that exactly 12 agents are defined. Each agent needs a `name` and a `system_prompt`.
+
+## Configuration
+
+Edit `config/config.yaml` to change the model, temperature, or debate limits:
+
+```yaml
+model:
+  name: gemma4:e2b      # or gemma4:e4b for higher quality
+  temperature: 0.7
+  context_window: 128000
+
+debate:
+  max_rounds: 50
+  context_summary_threshold: 0.50
+```
 
 ## License
 
