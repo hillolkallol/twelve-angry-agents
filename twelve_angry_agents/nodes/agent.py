@@ -284,7 +284,6 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
     votes = {}
-    transcript = list(state["transcript"])
     all_agent_names = [a.name for a in cfg.agents]
 
     console.print(Rule("[bold]BLIND VOTE[/bold]"))
@@ -303,7 +302,8 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
             response = llm.invoke(clarify)
             vote = extract_vote(response.content, valid_options)
         votes[agent.name] = vote
-        transcript.append(AIMessage(content=response.content, name=agent.name))
+        # Blind vote reasoning is intentionally NOT added to the shared transcript.
+        # Agents must not be able to reference reasoning they never saw.
         color = _agent_color(cfg, agent.name)
         console.print(f"  [{color}]{agent.name:<28}[/{color}] → {vote}")
 
@@ -317,7 +317,6 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     return {
         "votes": votes,
         "original_votes": dict(votes),
-        "transcript": transcript,
         "status": "voting",
     }
 
