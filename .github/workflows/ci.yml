@@ -24,21 +24,5 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sh
-
-      - name: Start Ollama server
-        run: ollama serve &
-
-      - name: Wait for Ollama to be ready
-        run: |
-          for i in $(seq 1 30); do
-            ollama list && break
-            sleep 2
-          done
-
-      - name: Pull model
-        run: ollama pull gemma4:e2b
-
-      - name: Run all tests
-        run: pytest -v
+      - name: Run tests
+        run: pytest -m "not integration" -v
