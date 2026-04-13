@@ -234,12 +234,20 @@ def build_deliberation_messages(
 
     # Pull the prior round count so agents know how many times they've already spoken
     prior_rounds = len(own_history)
-    no_repeat_instruction = (
-        f"You've already argued this {prior_rounds} time(s). "
-        f"Do NOT restate what you said before — say something new, respond to what others argued, "
-        f"or concede a point. Repeating yourself wastes the jury's time."
-        if prior_rounds > 0 else ""
-    )
+    if prior_rounds > 0:
+        # Summarise their last argument in one line so they can reference it as a tl;dr
+        last_arg_snippet = own_history[-1][:120].rstrip()
+        if len(own_history[-1]) > 120:
+            last_arg_snippet += "…"
+        no_repeat_instruction = (
+            f"You've already spoken {prior_rounds} time(s). "
+            f"If you're still making the same point, open with: "
+            f"'I've already said this — in short: [{last_arg_snippet}]' "
+            f"then immediately move to something NEW: respond to what an opponent just said, "
+            f"add a fresh angle, or concede a point. Do not re-argue what you've already stated."
+        )
+    else:
+        no_repeat_instruction = ""
 
     foreman_section = (
         f"THE FOREMAN ASKS: {moderator_question}\n\n"
