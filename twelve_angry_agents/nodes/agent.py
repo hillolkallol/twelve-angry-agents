@@ -91,11 +91,18 @@ def build_blind_vote_messages(
     agent: AgentPersona,
     enriched_topic: str,
     verdict_framing: str,
+    all_agent_names: list[str] | None = None,
 ) -> list[BaseMessage]:
     """Build messages for the blind vote — no debate history visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
+    other_names = [n for n in (all_agent_names or []) if n != agent.name]
+    jury_note = (
+        f"\nYour name is {agent.name}. "
+        f"The other jury members are: {', '.join(other_names)}."
+        if other_names else f"\nYour name is {agent.name}."
+    )
     return [
-        SystemMessage(content=agent.system_prompt),
+        SystemMessage(content=agent.system_prompt + jury_note),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n\n"
             f"Your verdict options are: {verdict_framing}\n"
@@ -114,6 +121,7 @@ def build_deliberation_messages(
     transcript: list[BaseMessage],
     summary: str,
     votes: dict[str, str] | None = None,
+    all_agent_names: list[str] | None = None,
 ) -> list[BaseMessage]:
     """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
@@ -176,9 +184,18 @@ def build_deliberation_messages(
                     + "\n\n"
                 )
 
+    # Build jury-awareness note so the agent knows their own name and recognises others
+    other_names = [n for n in (all_agent_names or []) if n != agent.name]
+    jury_note = (
+        f"\n\nYour name is {agent.name}. "
+        f"The other jury members are: {', '.join(other_names)}. "
+        f"When another agent addresses you by name, acknowledge it directly in your response."
+        if other_names else f"\n\nYour name is {agent.name}."
+    )
+
     # Anchor the topic in the system prompt so it is never crowded out by long transcripts
     system_content = (
-        f"{agent.system_prompt}\n\n"
+        f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
         f"Every response you give must stay focused on this specific topic and question."
@@ -220,6 +237,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
     votes = {}
     transcript = list(state["transcript"])
+    all_agent_names = [a.name for a in cfg.agents]
 
     console.print(Rule("[bold]BLIND VOTE[/bold]"))
 
@@ -228,6 +246,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
             agent=agent,
             enriched_topic=state["enriched_topic"],
             verdict_framing=state["verdict_framing"],
+            all_agent_names=all_agent_names,
         )
         response = llm.invoke(messages)
         vote = extract_vote(response.content, valid_options)
@@ -268,6 +287,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     agent_name = state["speaking_order"][idx]
     agent = next(a for a in cfg.agents if a.name == agent_name)
     current_vote = state["votes"].get(agent_name, "undecided")
+    all_agent_names = [a.name for a in cfg.agents]
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
 
@@ -281,6 +301,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         transcript=state["transcript"],
         summary=state["summary"],
         votes=state["votes"],
+        all_agent_names=all_agent_names,
     )
 
     full_response = ""
