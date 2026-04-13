@@ -91,11 +91,19 @@ def build_blind_vote_messages(
     agent: AgentPersona,
     enriched_topic: str,
     verdict_framing: str,
+    all_agent_names: list[str] | None = None,
 ) -> list[BaseMessage]:
     """Build messages for the blind vote — no debate history visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
+    other_names = [n for n in (all_agent_names or []) if n != agent.name]
+    jury_note = (
+        f"\nYour name is {agent.name}. "
+        f"The other jury members are: {', '.join(other_names)}."
+        if other_names else f"\nYour name is {agent.name}."
+    )
+    system_content = agent.system_prompt + jury_note
     return [
-        SystemMessage(content=agent.system_prompt),
+        SystemMessage(content=system_content),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n\n"
             f"Your verdict options are: {verdict_framing}\n"
@@ -114,6 +122,8 @@ def build_deliberation_messages(
     transcript: list[BaseMessage],
     summary: str,
     votes: dict[str, str] | None = None,
+    all_agent_names: list[str] | None = None,
+    moderator_question: str = "",
 ) -> list[BaseMessage]:
     """Build messages for deliberation — summary + recent transcript visible."""
     options = [o.strip() for o in verdict_framing.split("/")]
@@ -176,9 +186,18 @@ def build_deliberation_messages(
                     + "\n\n"
                 )
 
+    # Build jury-awareness note for the system prompt
+    other_names = [n for n in (all_agent_names or []) if n != agent.name]
+    jury_note = (
+        f"\n\nYour name is {agent.name}. "
+        f"The other jury members are: {', '.join(other_names)}. "
+        f"When another agent addresses you by name, acknowledge it directly in your response."
+        if other_names else f"\n\nYour name is {agent.name}."
+    )
+
     # Anchor the topic in the system prompt so it is never crowded out by long transcripts
     system_content = (
-        f"{agent.system_prompt}\n\n"
+        f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
         f"Every response you give must stay focused on this specific topic and question."
@@ -191,20 +210,45 @@ def build_deliberation_messages(
         "Make your argument clearly and directly."
     )
 
+    # Foreman probe question for this round
+    foreman_section = (
+        f"THE FOREMAN ASKS: {moderator_question}\n\n"
+        if moderator_question else ""
+    )
+
     return [
         SystemMessage(content=system_content),
         HumanMessage(content=(
             f"{own_history_text}"
             f"{opponents_text}"
+            f"{foreman_section}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
             f"Respond now. Your response MUST start with exactly:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
             f"{engagement_instruction} "
             f"Hold your position unless a genuinely new argument persuades you. "
-            f"If you change your vote, explicitly state what changed your mind."
+            f"If you change your vote, you MUST begin your explanation with: "
+            f"'I changed my vote to [option] because [specific reason].'"
         )),
     ]
+
+
+# 12 distinct Rich colors — one per jury seat (by agent index)
+_AGENT_COLORS = [
+    "bright_cyan", "bright_green", "bright_yellow", "bright_magenta",
+    "bright_red", "cyan", "green", "yellow", "magenta", "red",
+    "bright_blue", "blue",
+]
+
+
+def _agent_color(cfg: "AppConfig", agent_name: str) -> str:
+    """Return the Rich color assigned to this agent."""
+    names = [a.name for a in cfg.agents]
+    try:
+        return _AGENT_COLORS[names.index(agent_name) % len(_AGENT_COLORS)]
+    except ValueError:
+        return "white"
 
 
 def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
@@ -220,6 +264,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
     votes = {}
     transcript = list(state["transcript"])
+    all_agent_names = [a.name for a in cfg.agents]
 
     console.print(Rule("[bold]BLIND VOTE[/bold]"))
 
@@ -228,6 +273,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
             agent=agent,
             enriched_topic=state["enriched_topic"],
             verdict_framing=state["verdict_framing"],
+            all_agent_names=all_agent_names,
         )
         response = llm.invoke(messages)
         vote = extract_vote(response.content, valid_options)
@@ -237,7 +283,8 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
             vote = extract_vote(response.content, valid_options)
         votes[agent.name] = vote
         transcript.append(AIMessage(content=response.content, name=agent.name))
-        console.print(f"  {agent.name:<28} → {vote}")
+        color = _agent_color(cfg, agent.name)
+        console.print(f"  [{color}]{agent.name:<28}[/{color}] → {vote}")
 
     # Print tally
     tally = {opt: sum(1 for v in votes.values() if v == opt) for opt in valid_options}
@@ -258,7 +305,6 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     """Current agent speaks during deliberation. Streams output to console."""
     from langchain_ollama import ChatOllama
     from rich.console import Console
-    from rich.rule import Rule
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature)
@@ -268,10 +314,13 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
     agent_name = state["speaking_order"][idx]
     agent = next(a for a in cfg.agents if a.name == agent_name)
     current_vote = state["votes"].get(agent_name, "undecided")
+    all_agent_names = [a.name for a in cfg.agents]
+    color = _agent_color(cfg, agent_name)
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
 
-    console.print(Rule(f"[bold]{agent_name}[/bold]  [dim][{current_vote}][/dim]"))
+    # Conversational header: colored name + current vote — no full-width rule
+    console.print(f"\n[bold {color}]{agent_name}[/bold {color}] [dim][{current_vote}][/dim]")
 
     messages = build_deliberation_messages(
         agent=agent,
@@ -281,13 +330,15 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         transcript=state["transcript"],
         summary=state["summary"],
         votes=state["votes"],
+        all_agent_names=all_agent_names,
+        moderator_question=state.get("moderator_question", ""),
     )
 
     full_response = ""
     for chunk in llm.stream(messages):
         print(chunk.content, end="", flush=True)
         full_response += chunk.content
-    print("\n")
+    print()
 
     new_vote = extract_vote(full_response, valid_options)
     if new_vote == "undecided":

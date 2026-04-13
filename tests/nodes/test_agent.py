@@ -99,6 +99,20 @@ def test_build_blind_vote_messages_starts_with_system():
     assert isinstance(messages[0], SystemMessage)
 
 
+def test_build_blind_vote_messages_includes_own_name():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_blind_vote_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        all_agent_names=["The Skeptic", "The Optimist", "The Analyst"],
+    )
+    system_content = messages[0].content
+    assert "The Skeptic" in system_content
+    assert "The Optimist" in system_content
+    assert "The Analyst" in system_content
+
+
 def test_build_deliberation_messages_includes_transcript():
     agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
     transcript = [
@@ -180,3 +194,49 @@ def test_build_deliberation_messages_no_votes_param_still_works():
     )
     combined = " ".join(m.content for m in messages)
     assert "opposing your position" not in combined
+
+
+def test_build_deliberation_messages_includes_agent_name_in_system():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+        all_agent_names=["The Skeptic", "The Optimist", "The Analyst"],
+    )
+    system_content = messages[0].content
+    assert "The Skeptic" in system_content
+    assert "The Optimist" in system_content
+
+
+def test_build_deliberation_messages_includes_moderator_question():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+        moderator_question="The Skeptic, what evidence would change your mind?",
+    )
+    human_content = messages[1].content
+    assert "THE FOREMAN ASKS" in human_content
+    assert "what evidence would change your mind" in human_content
+
+
+def test_build_deliberation_messages_mind_change_instruction_present():
+    agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
+    messages = build_deliberation_messages(
+        agent=agent,
+        enriched_topic="Topic.",
+        verdict_framing="proceed / don't proceed",
+        current_vote="don't proceed",
+        transcript=[],
+        summary="",
+    )
+    human_content = messages[1].content
+    assert "I changed my vote to" in human_content

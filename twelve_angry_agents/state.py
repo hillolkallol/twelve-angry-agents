@@ -15,4 +15,5 @@ class DebateState(TypedDict):
     speaking_order: list[str]       # randomized agent order for this round
     current_speaker_idx: int        # index into speaking_order
     verdict: NotRequired[str | None]  # set when consensus is reached
+    moderator_question: NotRequired[str]  # per-round probe question from the Foreman
     status: Literal["gathering", "voting", "deliberating", "concluded"]

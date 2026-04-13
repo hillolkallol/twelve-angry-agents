@@ -68,6 +68,7 @@ def run_debate(
         "speaking_order": [],
         "current_speaker_idx": 0,
         "verdict": None,
+        "moderator_question": "",
         "status": "gathering",
     }
 
