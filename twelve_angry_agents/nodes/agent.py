@@ -225,9 +225,11 @@ def build_deliberation_messages(
             f"Respond now. Your response MUST start with exactly:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
             f"{engagement_instruction} "
-            f"Hold your position unless a genuinely new argument persuades you. "
-            f"If you change your vote, you MUST begin your explanation with: "
-            f"'I changed my vote to [option] because [specific reason].'"
+            f"Hold your position unless a genuinely new argument persuades you.\n"
+            f"— If you keep your vote ({current_vote}): do NOT use the phrase "
+            f"'I changed my vote'. State your argument directly.\n"
+            f"— If you change your vote: you MUST open with exactly: "
+            f"'I changed my vote to [new option] because [specific reason].'"
         )),
     ]
 

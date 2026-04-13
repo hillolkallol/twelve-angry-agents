@@ -158,7 +158,11 @@ def test_build_deliberation_messages_mind_change_instruction_present():
         summary="",
     )
     human_content = messages[1].content
-    assert "I changed my vote to" in human_content
+    # If maintaining: must NOT say "I changed my vote"
+    assert "do NOT use the phrase" in human_content
+    assert "I changed my vote to [new option] because" in human_content
+    # Current vote injected so the LLM knows which case applies
+    assert "don't proceed" in human_content
 
 
 def test_build_deliberation_messages_includes_summary_when_present():
