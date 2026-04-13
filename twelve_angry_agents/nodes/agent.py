@@ -7,16 +7,65 @@ from twelve_angry_agents.config import AgentPersona, AppConfig
 from twelve_angry_agents.state import DebateState
 
 
-def extract_vote(response: str, valid_options: list[str]) -> str:
-    """Parse VOTE: <option> from agent response. Returns 'undecided' if not found."""
-    match = re.search(r"VOTE:\s*(.+)", response, re.IGNORECASE)
-    if not match:
-        return "undecided"
-    raw = match.group(1).strip().lower()
-    # Sort longest first to avoid substring false matches (e.g. "proceed" inside "don't proceed")
+def _strip_markdown(text: str) -> str:
+    """Remove bold/italic markdown markers so **No** and *proceed* match cleanly."""
+    return re.sub(r"\*+", "", text).strip()
+
+
+def _match_option(raw: str, valid_options: list[str]) -> str | None:
+    """Return the first matching option from raw text, longest-first to avoid substring collisions."""
+    cleaned = _strip_markdown(raw).lower()
     for option in sorted(valid_options, key=len, reverse=True):
-        if option.lower() in raw:
+        if option.lower() in cleaned:
             return option
+    return None
+
+
+def _yes_no_to_option(raw: str, valid_options: list[str]) -> str | None:
+    """Map bare 'yes'/'no' to the appropriate option based on which option contains a negation."""
+    cleaned = _strip_markdown(raw).lower().strip(".,!? ")
+    if cleaned not in ("yes", "no"):
+        return None
+    # The "negative" option is the one containing don't / not / un- / never
+    neg_markers = ("don't", "dont", "not", "un", "never", "no ")
+    negative = next(
+        (o for o in valid_options if any(m in o.lower() for m in neg_markers)),
+        valid_options[-1],  # fallback: treat last option as negative
+    )
+    positive = next(o for o in valid_options if o != negative)
+    return negative if cleaned == "no" else positive
+
+
+def extract_vote(response: str, valid_options: list[str]) -> str:
+    """Parse the agent's vote from their response.
+
+    Tries in order:
+    1. Text after 'VOTE:' prefix (canonical format)
+    2. First line of the response (agents often put the vote first without prefix)
+    3. yes/no mapping based on which option contains a negation word
+    Returns 'undecided' if nothing matches.
+    """
+    # 1. Canonical VOTE: prefix
+    match = re.search(r"VOTE:\s*(.+)", response, re.IGNORECASE)
+    if match:
+        result = _match_option(match.group(1), valid_options)
+        if result:
+            return result
+        # VOTE: was present but contained yes/no
+        result = _yes_no_to_option(match.group(1), valid_options)
+        if result:
+            return result
+
+    # 2. First non-empty line of response (agents often lead with their vote)
+    first_line = next((l for l in response.splitlines() if l.strip()), "")
+    if first_line:
+        result = _match_option(first_line, valid_options)
+        if result:
+            return result
+        result = _yes_no_to_option(first_line, valid_options)
+        if result:
+            return result
+
     return "undecided"
 
 

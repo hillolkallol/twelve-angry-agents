@@ -28,6 +28,37 @@ def test_extract_vote_returns_undecided_on_failure():
     assert extract_vote(response, ["proceed", "don't proceed"]) == "undecided"
 
 
+def test_extract_vote_strips_markdown_bold():
+    response = "VOTE: **don't proceed**\nThe risk is too high."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_extract_vote_bare_no_maps_to_negative_option():
+    response = "VOTE: No\nThe risk is too high."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_extract_vote_bare_yes_maps_to_positive_option():
+    response = "VOTE: Yes\nThe opportunity is clear."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "proceed"
+
+
+def test_extract_vote_first_line_fallback():
+    # No VOTE: prefix — agent just leads with the option
+    response = "don't proceed\n\nThe risk outweighs the reward."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_extract_vote_first_line_no_fallback():
+    response = "No\n\nThe consensus is clear — decline."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
+def test_extract_vote_bold_first_line_fallback():
+    response = "**Don't proceed**\n\nThe risk is unacceptable."
+    assert extract_vote(response, ["proceed", "don't proceed"]) == "don't proceed"
+
+
 def test_build_blind_vote_messages_contains_topic():
     agent = AgentPersona(name="The Skeptic", system_prompt="You are skeptical.")
     messages = build_blind_vote_messages(
