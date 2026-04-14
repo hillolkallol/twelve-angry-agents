@@ -69,6 +69,13 @@ taa --output debate.txt "Should I accept this acquisition offer?"
 taa --max-rounds 10 "Should we raise a Series A now or wait 12 months?"
 ```
 
+> **Note:** If your topic contains a `$` sign (e.g. `$40k`), use single quotes or escape it — otherwise the shell will expand it as a variable:
+> ```bash
+> taa 'I have $40k saved — should I invest it all?'
+> # or
+> taa "I have \$40k saved — should I invest it all?"
+> ```
+
 ## How It Works
 
 1. The **Foreman** gathers any missing context with 2-3 targeted questions

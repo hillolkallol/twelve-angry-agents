@@ -57,7 +57,8 @@ def build_foreman_open_messages(
             "Pick the clearest binary verdict for this — something like 'proceed / don't proceed', "
             "'sound / unsound', 'ethical / unethical', 'viable / not viable', or whatever fits.\n\n"
             "Respond with: FRAMING: <option1> / <option2>\n"
-            "Then one sentence to kick off the debate. Keep it sharp."
+            "Then one sentence to frame what this debate is actually about. "
+            "Not a reaction — nobody has said anything yet. Just set the stage."
         )),
     ]
 
