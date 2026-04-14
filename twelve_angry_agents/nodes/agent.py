@@ -186,6 +186,7 @@ def build_deliberation_messages(
     # most recent argument so this agent can directly engage with them by name.
     opponents_text = ""
     allies_text = ""
+    chosen_opponent: str | None = None
     if votes and current_vote and current_vote != "undecided":
         opposing_names = set(
             name for name, vote in votes.items()
@@ -196,36 +197,55 @@ def build_deliberation_messages(
             if vote == current_vote and name != agent.name
         )
 
-        # Show only the most recently active opponent so agents don't all pile on the same quote
         if opposing_names:
+            # Find opponents already targeted this round so we can spread the attacks.
+            # "This round" ≈ the last N messages where N is the number of agents.
+            round_window = len(votes)
+            recently_targeted: set[str] = set()
+            for m in transcript[-round_window:]:
+                if isinstance(m, AIMessage):
+                    content_lower = m.content.lower()
+                    for oname in opposing_names:
+                        if oname.lower() in content_lower:
+                            recently_targeted.add(oname)
+
+            # Prefer opponents who haven't been targeted yet this round
+            target_pool = opposing_names - recently_targeted or opposing_names
+
+            # Pick the most recently active from that pool
             for m in reversed(transcript):
-                name = getattr(m, "name", "")
-                if isinstance(m, AIMessage) and name in opposing_names:
+                mname = getattr(m, "name", "")
+                if isinstance(m, AIMessage) and mname in target_pool:
+                    chosen_opponent = mname
                     snippet = m.content[:300].rstrip()
                     if len(m.content) > 300:
                         snippet += "…"
                     opponents_text = (
-                        f"Most recent opposing argument — {name}:\n  {snippet}\n\n"
-                        f"Address {name} directly.\n\n"
+                        f"Argument to respond to — {chosen_opponent}:\n  \"{snippet}\"\n\n"
+                        f"This turn, address {chosen_opponent} and nobody else.\n\n"
                     )
                     break
 
-        # Show what same-side allies argued recently so this agent takes a different angle
+        # Show what same-side allies argued recently so this agent takes a different angle.
+        # Larger snippets (200 chars) across up to 3 allies, one message per ally.
         if ally_names:
             recent_ally_args = []
-            for m in reversed(transcript[-16:]):
-                name = getattr(m, "name", "")
-                if isinstance(m, AIMessage) and name in ally_names:
-                    snippet = m.content[:120].rstrip()
-                    if len(m.content) > 120:
+            seen_ally_names: set[str] = set()
+            for m in reversed(transcript[-20:]):
+                mname = getattr(m, "name", "")
+                if isinstance(m, AIMessage) and mname in ally_names and mname not in seen_ally_names:
+                    snippet = m.content[:200].rstrip()
+                    if len(m.content) > 200:
                         snippet += "…"
-                    recent_ally_args.append(f"  {name}: {snippet}")
-                    if len(recent_ally_args) >= 2:
+                    recent_ally_args.append(f"  {mname}: \"{snippet}\"")
+                    seen_ally_names.add(mname)
+                    if len(recent_ally_args) >= 3:
                         break
             if recent_ally_args:
                 allies_text = (
-                    "Your allies already argued:\n" + "\n".join(recent_ally_args) + "\n"
-                    "Don't repeat their points — bring a fresh angle.\n\n"
+                    "Your allies just argued — don't repeat their words, angle, or metaphors:\n"
+                    + "\n".join(recent_ally_args) + "\n"
+                    "Bring a completely different point.\n\n"
                 )
 
     # Build jury-awareness note so the agent knows their own name and recognises others
@@ -242,18 +262,19 @@ def build_deliberation_messages(
         f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
-        f"The jury room is tense and everyone is getting fed up. Be blunt, impatient, and informal — "
-        f"use contractions, plain language, even mild frustration (\"oh come on\", \"seriously?\", "
-        f"\"give me a break\"). If you agree with someone, you're still annoyed about something — "
-        f"maybe HOW they argued it, or that it took this long. React to what was actually just said. "
-        f"No bullet points, no preamble, no corporate language. Stay on this topic."
+        f"The jury room is tense. Be blunt, impatient, informal — contractions, plain language, "
+        f"mild frustration (\"oh come on\", \"seriously?\", \"give me a break\"). "
+        f"If you concede, you're still annoyed about something. "
+        f"Do NOT parrot words or phrases you've heard other agents use — find your own language. "
+        f"Vary how you open: sometimes lead with your own point, sometimes fire a question, "
+        f"sometimes react mid-sentence. No bullet points, no preamble. Stay on this topic."
     )
 
     engagement_instruction = (
-        "Someone just argued against you. Call them out by name, get into it — quote what they said "
-        "and tell them exactly why they're wrong, or grudgingly admit they have a point (but make "
-        "clear it pains you to say so)."
-        if opponents_text else
+        f"Respond to {chosen_opponent} — take on something specific they just said and tell them "
+        f"exactly where they're wrong, or grudgingly admit they have a point (but make clear it "
+        f"pains you). Do not address anyone else this turn."
+        if chosen_opponent else
         "Make your case — bluntly, like you mean it."
     )
 
