@@ -123,12 +123,16 @@ def build_blind_vote_messages(
         f"The other jury members are: {', '.join(other_names)}."
         if other_names else f"\nYour name is {agent.name}."
     )
+    tone = (
+        "Be blunt and direct — one sentence, plain language, no corporate tone. "
+        "You have an opinion and you're not shy about it."
+    )
     return [
         SystemMessage(content=agent.system_prompt + jury_note),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n\n"
             f"Your verdict options are: {verdict_framing}\n"
-            f"State your initial position.\n"
+            f"State your initial position. {tone}\n"
             f"Start with: VOTE: {options[0]} OR VOTE: {options[1]}\n"
             f"Then give one sentence of reasoning."
         )),
@@ -238,17 +242,19 @@ def build_deliberation_messages(
         f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
-        f"You are in a heated jury room. Speak like a real person — passionate, blunt, sometimes "
-        f"frustrated or surprised. No bullet points, no preamble, no corporate language. React to "
-        f"what others say. It's fine to repeat your core conviction if you feel strongly, but always "
-        f"react to something specific that was just said. Every response must stay on this topic."
+        f"The jury room is tense and everyone is getting fed up. Be blunt, impatient, and informal — "
+        f"use contractions, plain language, even mild frustration (\"oh come on\", \"seriously?\", "
+        f"\"give me a break\"). If you agree with someone, you're still annoyed about something — "
+        f"maybe HOW they argued it, or that it took this long. React to what was actually just said. "
+        f"No bullet points, no preamble, no corporate language. Stay on this topic."
     )
 
     engagement_instruction = (
-        "Someone disagreed with you. Call them out by name, quote what they said, and tell them "
-        "exactly why they're wrong — or grudgingly admit if they made a fair point."
+        "Someone just argued against you. Call them out by name, get into it — quote what they said "
+        "and tell them exactly why they're wrong, or grudgingly admit they have a point (but make "
+        "clear it pains you to say so)."
         if opponents_text else
-        "Make your case like you mean it."
+        "Make your case — bluntly, like you mean it."
     )
 
     # Show prior argument as silent context so the agent knows what it already said,
