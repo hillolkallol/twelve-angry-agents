@@ -124,8 +124,8 @@ def build_blind_vote_messages(
         if other_names else f"\nYour name is {agent.name}."
     )
     tone = (
-        "Be blunt and direct — one sentence, plain language, no corporate tone. "
-        "You have an opinion and you're not shy about it."
+        "You are a juror evaluating someone else's decision — never say 'we', always 'they' or "
+        "'this person'. Be blunt and direct — one sentence, plain language, no corporate tone."
     )
     return [
         SystemMessage(content=agent.system_prompt + jury_note),
@@ -199,33 +199,42 @@ def build_deliberation_messages(
         )
 
         if opposing_names:
-            # Find opponents already targeted this round so we can spread the attacks.
             # "This round" ≈ the last N messages where N is the number of agents.
             round_window = len(votes)
-            recently_targeted: set[str] = set()
+
+            # Count how many times each opponent has been addressed this round.
+            opponent_attack_count: dict[str, int] = {n: 0 for n in opposing_names}
             for m in transcript[-round_window:]:
                 if isinstance(m, AIMessage):
                     content_lower = m.content.lower()
                     for oname in opposing_names:
                         if oname.lower() in content_lower:
-                            recently_targeted.add(oname)
+                            opponent_attack_count[oname] += 1
 
-            # Prefer opponents who haven't been targeted yet this round
-            target_pool = opposing_names - recently_targeted or opposing_names
+            # When there's only one opponent and they've already been attacked 2+ times
+            # this round, stop piling on — make an independent case instead.
+            lone_and_beaten = (
+                len(opposing_names) == 1
+                and list(opponent_attack_count.values())[0] >= 2
+            )
 
-            # Pick the most recently active from that pool
-            for m in reversed(transcript):
-                mname = getattr(m, "name", "")
-                if isinstance(m, AIMessage) and mname in target_pool:
-                    chosen_opponent = mname
-                    snippet = m.content[:300].rstrip()
-                    if len(m.content) > 300:
-                        snippet += "…"
-                    opponents_text = (
-                        f"Argument to respond to — {chosen_opponent}:\n  \"{snippet}\"\n\n"
-                        f"This turn, address {chosen_opponent} and nobody else.\n\n"
-                    )
-                    break
+            if not lone_and_beaten:
+                # Prefer opponents targeted least often this round
+                min_attacks = min(opponent_attack_count.values())
+                target_pool = {n for n, c in opponent_attack_count.items() if c == min_attacks}
+
+                for m in reversed(transcript):
+                    mname = getattr(m, "name", "")
+                    if isinstance(m, AIMessage) and mname in target_pool:
+                        chosen_opponent = mname
+                        snippet = m.content[:300].rstrip()
+                        if len(m.content) > 300:
+                            snippet += "…"
+                        opponents_text = (
+                            f"Argument to respond to — {chosen_opponent}:\n  \"{snippet}\"\n\n"
+                            f"This turn, address {chosen_opponent} and nobody else.\n\n"
+                        )
+                        break
 
         # Show what same-side allies argued recently so this agent takes a different angle.
         # Larger snippets (200 chars) across up to 3 allies, one message per ally.
@@ -243,10 +252,16 @@ def build_deliberation_messages(
                     if len(recent_ally_args) >= 3:
                         break
             if recent_ally_args:
+                covered_note = (
+                    "The lone opponent has already been challenged multiple times — "
+                    "make your own independent case from a fresh angle instead.\n"
+                    if lone_and_beaten else
+                    "Bring a completely different point.\n"
+                )
                 allies_text = (
                     "Your allies just argued — don't repeat their words, angle, or metaphors:\n"
                     + "\n".join(recent_ally_args) + "\n"
-                    "Bring a completely different point.\n\n"
+                    + covered_note + "\n"
                 )
 
         # Detect agents who flipped away from the current agent's side this round.
@@ -282,6 +297,8 @@ def build_deliberation_messages(
         f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
+        f"You are a JUROR evaluating someone else's decision — not the person making it, not their "
+        f"advisor, not their partner. Never say 'we'. Always say 'they', 'the person', or 'this plan'. "
         f"The jury room is tense. Be blunt, impatient, informal — contractions, plain language, "
         f"mild frustration (\"oh come on\", \"seriously?\", \"give me a break\"). "
         f"If you concede, you're still annoyed about something. "
