@@ -299,7 +299,7 @@ def blind_vote_node(state: DebateState, config: RunnableConfig) -> dict:
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     valid_options = [o.strip() for o in state["verdict_framing"].split("/")]
     votes = {}
@@ -351,7 +351,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         temperature=cfg.model.temperature,
         num_ctx=cfg.model.context_window,
     )
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     idx = state["current_speaker_idx"]
     agent_name = state["speaking_order"][idx]
@@ -379,9 +379,9 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
 
     full_response = ""
     for chunk in llm.stream(messages):
-        print(chunk.content, end="", flush=True)
+        console.print(chunk.content, end="", highlight=False)
         full_response += chunk.content
-    print()
+    console.print()
 
     new_vote = extract_vote(full_response, valid_options)
     if new_vote == "undecided":
@@ -417,7 +417,7 @@ def vote_again_node(state: DebateState, config: RunnableConfig) -> dict:
     from rich.table import Table
 
     cfg: AppConfig = config["configurable"]["app_config"]
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     table = Table(title=f"Re-Vote (Round {state['round'] + 1})", show_header=True)
     table.add_column("Agent", style="bold")
