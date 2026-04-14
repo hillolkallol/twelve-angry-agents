@@ -221,33 +221,33 @@ def build_deliberation_messages(
         f"{agent.system_prompt}{jury_note}\n\n"
         f"DEBATE TOPIC (always keep this in mind):\n{enriched_topic}\n\n"
         f"Verdict options: {verdict_framing}\n"
-        f"Speak like a real person in a heated discussion — direct, conversational, no bullet points, "
-        f"no formal preamble. Every response must stay focused on this specific topic."
+        f"You are in a heated jury room. Speak like a real person — passionate, blunt, sometimes "
+        f"frustrated or surprised. No bullet points, no preamble, no corporate language. React to "
+        f"what others say. It's fine to repeat your core conviction if you feel strongly, but always "
+        f"react to something specific that was just said. Every response must stay on this topic."
     )
 
     engagement_instruction = (
-        "Engage with the opposing agents listed above — call them out by name, push back on their "
-        "specific claim, or concede a point if they've got it right."
+        "Someone disagreed with you. Call them out by name, quote what they said, and tell them "
+        "exactly why they're wrong — or grudgingly admit if they made a fair point."
         if opponents_text else
-        "Make your point directly."
+        "Make your case like you mean it."
     )
 
-    # Pull the prior round count so agents know how many times they've already spoken
+    # Show prior argument as silent context so the agent knows what it already said,
+    # but give no opening formula — let the reaction come naturally.
     prior_rounds = len(own_history)
+    prior_context = ""
     if prior_rounds > 0:
-        # Summarise their last argument in one line so they can reference it as a tl;dr
-        last_arg_snippet = own_history[-1][:120].rstrip()
-        if len(own_history[-1]) > 120:
+        last_arg_snippet = own_history[-1][:150].rstrip()
+        if len(own_history[-1]) > 150:
             last_arg_snippet += "…"
-        no_repeat_instruction = (
-            f"You've already spoken {prior_rounds} time(s). "
-            f"If you're still making the same point, open with: "
-            f"'I've already said this — in short: [{last_arg_snippet}]' "
-            f"then immediately move to something NEW: respond to what an opponent just said, "
-            f"add a fresh angle, or concede a point. Do not re-argue what you've already stated."
+        prior_context = (
+            f"(What you argued last time: \"{last_arg_snippet}\")\n"
+            f"Don't open with a formula. Just react — pick something specific from the debate "
+            f"above and go at it. You can hammer your point again if you feel strongly, but "
+            f"tie it to what someone else just said.\n\n"
         )
-    else:
-        no_repeat_instruction = ""
 
     foreman_section = (
         f"THE FOREMAN ASKS: {moderator_question}\n\n"
@@ -262,13 +262,13 @@ def build_deliberation_messages(
             f"{foreman_section}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
+            f"{prior_context}"
             f"Respond now. Start with:\n"
             f"VOTE: {options[0]}  OR  VOTE: {options[1]}\n"
             f"{engagement_instruction} "
             f"Hold your position unless a genuinely new argument persuades you.\n"
-            f"— If you keep your vote ({current_vote}): do NOT use the phrase "
-            f"'I changed my vote'. {no_repeat_instruction}\n"
-            f"— If you change your vote: you MUST start with exactly: "
+            f"— If you keep your vote ({current_vote}): do NOT use the phrase 'I changed my vote'.\n"
+            f"— If you change your vote: start with exactly: "
             f"'I changed my vote to [new option] because [specific reason].' "
             f"Do not open with anything else."
         )),
