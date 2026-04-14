@@ -17,12 +17,35 @@ from twelve_angry_agents.nodes.consensus import is_hung_jury, majority_vote
 from twelve_angry_agents.state import DebateState
 
 
+_FALLBACK_FRAMING = "proceed / don't proceed"
+_INVALID_OPTION_WORDS = {"undecided", "unquantifiable", "unclear", "unknown", "tbd", "n/a"}
+
+
+def _is_valid_framing(framing: str) -> bool:
+    """Return False if the framing looks like nonsense (bad options, missing slash, etc.)."""
+    if "/" not in framing:
+        return False
+    parts = [o.strip().lower() for o in framing.split("/")]
+    if len(parts) != 2:
+        return False
+    a, b = parts
+    if not a or not b:
+        return False
+    if a == b:
+        return False
+    if a in _INVALID_OPTION_WORDS or b in _INVALID_OPTION_WORDS:
+        return False
+    return True
+
+
 def extract_verdict_framing(response: str) -> str:
-    """Parse FRAMING: option1 / option2 from moderator response."""
+    """Parse FRAMING: option1 / option2 from moderator response, with validation fallback."""
     match = re.search(r"FRAMING:\s*(.+)", response, re.IGNORECASE)
     if match:
-        return match.group(1).strip()
-    return "proceed / don't proceed"
+        framing = match.group(1).strip()
+        if _is_valid_framing(framing):
+            return framing
+    return _FALLBACK_FRAMING
 
 
 def extract_vote_options(verdict_framing: str) -> list[str]:
@@ -54,10 +77,15 @@ def build_foreman_open_messages(
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n\n"
-            "Pick the clearest binary verdict for this — something like 'proceed / don't proceed', "
-            "'sound / unsound', 'ethical / unethical', 'viable / not viable', or whatever fits.\n\n"
+            "Pick a binary verdict framing. Use one of these unless there's a strong reason not to:\n"
+            "  proceed / don't proceed  (decisions, actions)\n"
+            "  viable / not viable      (plans, business ideas)\n"
+            "  sound / unsound          (strategies, logic)\n"
+            "  ethical / unethical      (moral questions)\n"
+            "Both options must be clear action-or-judgment words — not 'undecided', "
+            "'unquantifiable', or anything vague.\n\n"
             "Respond with: FRAMING: <option1> / <option2>\n"
-            "Then one sentence to frame what this debate is actually about. "
+            "Then one sentence framing what this debate is actually about. "
             "Not a reaction — nobody has said anything yet. Just set the stage."
         )),
     ]
