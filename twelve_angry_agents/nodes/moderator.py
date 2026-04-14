@@ -1,6 +1,7 @@
 # twelve_angry_agents/nodes/moderator.py
 import random
 import re
+import sys
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -124,6 +125,9 @@ def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
     for q in questions:
         console.print(f"  {q}")
         answer = input("> ").strip()
+        # Clear the raw input line so console.print captures it without duplication
+        sys.stdout.write("\033[A\r\033[2K")
+        sys.stdout.flush()
         console.print(f"  > {answer}")
         answers.append(f"{q} {answer}")
         console.print()
