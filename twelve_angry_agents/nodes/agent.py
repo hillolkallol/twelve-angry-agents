@@ -181,30 +181,47 @@ def build_deliberation_messages(
     # Identify opponents — agents currently on the other side — and surface their
     # most recent argument so this agent can directly engage with them by name.
     opponents_text = ""
+    allies_text = ""
     if votes and current_vote and current_vote != "undecided":
-        opposing_names = [
+        opposing_names = set(
             name for name, vote in votes.items()
             if vote != current_vote and vote != "undecided" and name != agent.name
-        ]
+        )
+        ally_names = set(
+            name for name, vote in votes.items()
+            if vote == current_vote and name != agent.name
+        )
+
+        # Show only the most recently active opponent so agents don't all pile on the same quote
         if opposing_names:
-            # For each opponent, find their most recent message in the transcript
-            opponent_snippets = []
-            for name in opposing_names:
-                msgs = [
-                    m.content for m in transcript
-                    if isinstance(m, AIMessage) and getattr(m, "name", "") == name
-                ]
-                if msgs:
-                    # Trim to 300 chars so we don't blow up the prompt
-                    snippet = msgs[-1][:300].rstrip()
-                    if len(msgs[-1]) > 300:
+            for m in reversed(transcript):
+                name = getattr(m, "name", "")
+                if isinstance(m, AIMessage) and name in opposing_names:
+                    snippet = m.content[:300].rstrip()
+                    if len(m.content) > 300:
                         snippet += "…"
-                    opponent_snippets.append(f"  {name}: {snippet}")
-            if opponent_snippets:
-                opponents_text = (
-                    "Agents currently opposing your position (address them directly):\n"
-                    + "\n".join(opponent_snippets)
-                    + "\n\n"
+                    opponents_text = (
+                        f"Most recent opposing argument — {name}:\n  {snippet}\n\n"
+                        f"Address {name} directly.\n\n"
+                    )
+                    break
+
+        # Show what same-side allies argued recently so this agent takes a different angle
+        if ally_names:
+            recent_ally_args = []
+            for m in reversed(transcript[-16:]):
+                name = getattr(m, "name", "")
+                if isinstance(m, AIMessage) and name in ally_names:
+                    snippet = m.content[:120].rstrip()
+                    if len(m.content) > 120:
+                        snippet += "…"
+                    recent_ally_args.append(f"  {name}: {snippet}")
+                    if len(recent_ally_args) >= 2:
+                        break
+            if recent_ally_args:
+                allies_text = (
+                    "Your allies already argued:\n" + "\n".join(recent_ally_args) + "\n"
+                    "Don't repeat their points — bring a fresh angle.\n\n"
                 )
 
     # Build jury-awareness note so the agent knows their own name and recognises others
@@ -259,6 +276,7 @@ def build_deliberation_messages(
         HumanMessage(content=(
             f"{own_history_text}"
             f"{opponents_text}"
+            f"{allies_text}"
             f"{foreman_section}"
             f"Debate so far:\n{context}\n\n"
             f"Your current vote: {current_vote}\n\n"
