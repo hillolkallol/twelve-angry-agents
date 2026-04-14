@@ -37,12 +37,11 @@ def build_context_check_messages(
     return [
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
-            f"Topic submitted by user: {topic}\n\n"
-            "Evaluate if this topic has enough context for 12 agents to debate meaningfully.\n"
-            "If context is sufficient, respond: SUFFICIENT\n"
-            "If more context is needed, respond with 2-3 clarifying questions, one per line, "
-            "starting each with a number and period (e.g. '1. What is...')\n"
-            "Be direct. Only ask what is truly necessary."
+            f"Topic: {topic}\n\n"
+            "Is there enough here for 12 people to actually debate this? "
+            "If yes: SUFFICIENT\n"
+            "If not: ask 2-3 direct questions, one per line, numbered. "
+            "Only ask what you genuinely need — don't pad it."
         )),
     ]
 
@@ -55,13 +54,10 @@ def build_foreman_open_messages(
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n\n"
-            "Set the verdict framing for this debate. Choose the most appropriate binary:\n"
-            "- For decisions: 'proceed / don't proceed'\n"
-            "- For evaluations: 'sound / unsound'\n"
-            "- For ethical questions: 'ethical / unethical'\n"
-            "- For viability: 'viable / not viable'\n\n"
+            "Pick the clearest binary verdict for this — something like 'proceed / don't proceed', "
+            "'sound / unsound', 'ethical / unethical', 'viable / not viable', or whatever fits.\n\n"
             "Respond with: FRAMING: <option1> / <option2>\n"
-            "Then write a one-sentence opening statement for the debate."
+            "Then one sentence to kick off the debate. Keep it sharp."
         )),
     ]
 
@@ -75,19 +71,19 @@ def build_foreman_close_messages(
     hung_jury: bool,
 ) -> list[BaseMessage]:
     vote_summary = "\n".join(f"- {name}: {vote}" for name, vote in votes.items())
-    hung_note = "NOTE: This is a hung jury — consensus was not reached." if hung_jury else ""
+    hung_note = "Hung jury — they didn't get there." if hung_jury else ""
     return [
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n"
-            f"Verdict framing: {verdict_framing}\n"
+            f"Verdict: {verdict_framing}\n"
             f"Final votes:\n{vote_summary}\n\n"
             f"Debate transcript:\n{transcript_text}\n\n"
             f"{hung_note}\n"
-            "Deliver the final verdict as a clear prose paragraph. Include:\n"
-            "1. The unanimous decision (or majority if hung jury)\n"
-            "2. The decisive argument(s) that shifted the room\n"
-            "3. The key risk or concern raised by the last holdout(s) that users should address"
+            "Deliver the verdict in plain prose — no headers, no numbered lists. "
+            "Cover: what they decided, what actually moved the room, and the one thing "
+            "the holdouts kept coming back to that the person asking this should take seriously. "
+            "Be direct. Don't pad it."
         )),
     ]
 
@@ -186,14 +182,13 @@ def build_foreman_probe_messages(
         HumanMessage(content=(
             f"Topic: {enriched_topic}\n"
             f"Verdict options: {verdict_framing}\n"
-            f"Current votes:\n{vote_lines}\n\n"
-            f"Debate so far:\n{context}\n\n"
-            f"The jury is split. Read the arguments above and identify the core point of "
-            f"disagreement — the specific claim or assumption that separates the two sides. "
-            f"Then pose ONE sharp question that cuts directly to that disagreement. "
-            f"Do NOT name individual jury members and do NOT restate the general topic. "
-            f"The question must be specific to what has actually been argued.\n"
-            f"Output ONLY the question — one sentence, no preamble."
+            f"Votes:\n{vote_lines}\n\n"
+            f"What's been argued:\n{context}\n\n"
+            f"They're stuck. Read what's actually being said and find the real sticking point — "
+            f"the specific claim or assumption where the two sides genuinely disagree. "
+            f"Ask one sharp question that goes right at it. "
+            f"Don't name anyone, don't restate the topic, don't add preamble. "
+            f"Just the question. One sentence."
         )),
     ]
 

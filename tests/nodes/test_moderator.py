@@ -97,10 +97,9 @@ def test_build_foreman_probe_messages_asks_whole_jury():
     assert "Address it to" not in human_content
     assert "targets" not in human_content
     # instruction must tell the LLM to ask based on actual arguments
-    assert "core point of disagreement" in human_content
+    assert "sticking point" in human_content or "disagree" in human_content
     # topic and vote context should still be present
     assert "quit" in human_content
-    assert "split" in human_content
 
 
 def test_build_foreman_probe_messages_includes_recent_arguments():

@@ -147,6 +147,7 @@ def build_deliberation_messages(
     transcript: list[BaseMessage],
     summary: str,
     votes: dict[str, str] | None = None,
+    original_votes: dict[str, str] | None = None,
     all_agent_names: list[str] | None = None,
     moderator_question: str = "",
 ) -> list[BaseMessage]:
@@ -246,6 +247,25 @@ def build_deliberation_messages(
                     "Your allies just argued — don't repeat their words, angle, or metaphors:\n"
                     + "\n".join(recent_ally_args) + "\n"
                     "Bring a completely different point.\n\n"
+                )
+
+        # Detect agents who flipped away from the current agent's side this round.
+        # Former allies who switched are fair game to call out publicly.
+        if original_votes and current_vote:
+            defectors = [
+                (name, votes[name])
+                for name, vote in original_votes.items()
+                if (vote == current_vote
+                    and votes.get(name) not in (current_vote, "undecided")
+                    and name != agent.name)
+            ]
+            if defectors:
+                lines = [f"  {name} (switched to '{new_v}')" for name, new_v in defectors]
+                allies_text += (
+                    "DEFECTORS — former allies who just flipped sides this round:\n"
+                    + "\n".join(lines) + "\n"
+                    "You can tear into them instead of your assigned opponent if you want — "
+                    "traitors deserve more heat than the other side.\n\n"
                 )
 
     # Build jury-awareness note so the agent knows their own name and recognises others
@@ -418,6 +438,7 @@ def agent_speak_node(state: DebateState, config: RunnableConfig) -> dict:
         transcript=state["transcript"],
         summary=state["summary"],
         votes=state["votes"],
+        original_votes=state.get("original_votes"),
         all_agent_names=all_agent_names,
         moderator_question=state.get("moderator_question", ""),
     )
