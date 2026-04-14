@@ -7,33 +7,7 @@ from rich.rule import Rule
 
 from twelve_angry_agents.config import load_config
 from twelve_angry_agents.graph import build_graph
-from twelve_angry_agents.memory import format_transcript_for_summary
 from twelve_angry_agents.state import DebateState
-
-
-def save_transcript(output_path: Path, final_state: DebateState) -> None:
-    """Write the full debate transcript to a text file."""
-    lines = [
-        f"TWELVE ANGRY AGENTS — Debate Transcript",
-        f"Topic: {final_state['topic']}",
-        f"Verdict: {final_state.get('verdict', 'N/A')}",
-        "",
-    ]
-
-    if final_state["summary"]:
-        lines += [
-            "=== SUMMARY OF EARLIER ROUNDS ===",
-            final_state["summary"],
-            "",
-        ]
-
-    if final_state["transcript"]:
-        lines += [
-            "=== TRANSCRIPT ===",
-            format_transcript_for_summary(final_state["transcript"]),
-        ]
-
-    output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def run_debate(
@@ -44,7 +18,7 @@ def run_debate(
     max_rounds: int | None,
 ) -> None:
     """Build config, initialize state, and run the debate graph."""
-    console = Console()
+    console = Console(record=True)
 
     config = load_config(agents_path=agents_path)
     if model:
@@ -78,7 +52,7 @@ def run_debate(
     try:
         final_state = graph.invoke(
             initial_state,
-            config={"configurable": {"app_config": config}},
+            config={"configurable": {"app_config": config, "console": console}},
         )
     except Exception as e:
         err = str(e).lower()
@@ -91,7 +65,7 @@ def run_debate(
         raise
 
     if output_path:
-        save_transcript(output_path, final_state)
+        console.save_text(str(output_path))
         console.print(f"\nTranscript saved to: {output_path}")
 
 

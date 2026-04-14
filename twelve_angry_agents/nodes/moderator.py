@@ -98,7 +98,7 @@ def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     messages = build_context_check_messages(
         moderator=cfg.moderator,
@@ -124,8 +124,9 @@ def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
     for q in questions:
         console.print(f"  {q}")
         answer = input("> ").strip()
+        console.print(f"  > {answer}")
         answers.append(f"{q} {answer}")
-        print()
+        console.print()
 
     enriched = state["topic"] + "\n\nAdditional context:\n" + "\n".join(answers)
     return {"enriched_topic": enriched, "status": "voting"}
@@ -139,7 +140,7 @@ def moderator_open_node(state: DebateState, config: RunnableConfig) -> dict:
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     messages = build_foreman_open_messages(
         moderator=cfg.moderator,
@@ -200,7 +201,7 @@ def moderator_deliberate_node(state: DebateState, config: RunnableConfig) -> dic
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     agent_names = [a.name for a in cfg.agents]
 
@@ -295,7 +296,7 @@ def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
 
     cfg: AppConfig = config["configurable"]["app_config"]
     llm = ChatOllama(model=cfg.model.name, temperature=cfg.model.temperature, num_ctx=cfg.model.context_window)
-    console = Console()
+    console = config["configurable"].get("console") or Console()
 
     hung = is_hung_jury(state["round"], cfg.debate.max_rounds)
     transcript_text = format_transcript_for_summary(state["transcript"])
@@ -323,8 +324,8 @@ def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
 
     console.print("[bold]THE FOREMAN[/bold]")
     response = llm.invoke(messages)
-    print(response.content)
-    print()
+    console.print(response.content)
+    console.print()
 
     console.print(Rule())
     console.print(
@@ -332,7 +333,7 @@ def moderator_close_node(state: DebateState, config: RunnableConfig) -> dict:
         "your mortgage, your relationships, or your sense of what a life well-lived looks like. "
         "Take what's useful. Leave what isn't. The decision is yours.[/dim]"
     )
-    print()
+    console.print()
 
     return {
         "verdict": consensus_option,

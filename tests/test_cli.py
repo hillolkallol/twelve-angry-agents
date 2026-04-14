@@ -3,9 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
-from langchain_core.messages import AIMessage, HumanMessage
-
-from twelve_angry_agents.cli import main, save_transcript
+from twelve_angry_agents.cli import main
 
 
 def test_cli_requires_topic_or_stdin():
@@ -64,32 +62,3 @@ def test_cli_accepts_max_rounds_flag():
     assert "10" in str(call_kwargs)
 
 
-def test_save_transcript_writes_file(tmp_path):
-    output_path = tmp_path / "debate.txt"
-    state = {
-        "topic": "Should I quit?",
-        "verdict": "proceed",
-        "summary": "",
-        "transcript": [
-            HumanMessage(content="The topic is: Should I quit?"),
-            AIMessage(content="VOTE: proceed\nGood idea.", name="The Optimist"),
-        ],
-    }
-    save_transcript(output_path, state)
-    content = output_path.read_text()
-    assert "Should I quit?" in content
-    assert "proceed" in content
-    assert "The Optimist" in content
-
-
-def test_save_transcript_includes_summary(tmp_path):
-    output_path = tmp_path / "debate.txt"
-    state = {
-        "topic": "Should I quit?",
-        "verdict": "proceed",
-        "summary": "Earlier rounds showed strong disagreement.",
-        "transcript": [],
-    }
-    save_transcript(output_path, state)
-    content = output_path.read_text()
-    assert "Earlier rounds showed strong disagreement." in content
