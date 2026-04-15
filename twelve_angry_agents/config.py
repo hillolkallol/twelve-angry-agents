@@ -38,7 +38,7 @@ def load_config(
 ) -> AppConfig:
     base = Path(__file__).parent.parent / "config"
     config_path = config_path or base / "config.yaml"
-    agents_path = agents_path or base / "agents.yaml"
+    agents_path = agents_path or base / "agents" / "default.yaml"
 
     if not config_path.exists():
         raise FileNotFoundError(
