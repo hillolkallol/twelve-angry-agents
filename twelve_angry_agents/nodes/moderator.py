@@ -87,7 +87,8 @@ def build_foreman_open_messages(
             "'unquantifiable', or anything vague.\n\n"
             "Respond with: FRAMING: <option1> / <option2>\n"
             "Then one sentence framing what this debate is actually about. "
-            "Not a reaction — nobody has said anything yet. Just set the stage."
+            "Not a reaction — nobody has said anything yet. Just set the stage. "
+            "Do NOT repeat or rephrase the topic or any context questions — start directly with FRAMING:"
         )),
     ]
 
