@@ -76,6 +76,10 @@ taa --max-rounds 10 "Should we raise a Series A now or wait 12 months?"
 > taa "I have \$40k saved — should I invest it all?"
 > ```
 
+## Example
+
+See [`examples/food-truck-debate.md`](examples/food-truck-debate.md) for a full debate transcript — a food truck business decision that ran 5 rounds and ended in a hung jury (10–2 against proceeding).
+
 ## How It Works
 
 1. The **Foreman** gathers any missing context with 2-3 targeted questions
