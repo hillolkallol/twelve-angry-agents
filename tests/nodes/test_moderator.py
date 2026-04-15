@@ -76,6 +76,7 @@ def test_build_context_check_messages_contains_topic():
     messages = build_context_check_messages(
         moderator=cfg.moderator,
         topic="Should I quit?",
+        num_agents=12,
     )
     combined = " ".join(m.content for m in messages)
     assert "quit" in combined
