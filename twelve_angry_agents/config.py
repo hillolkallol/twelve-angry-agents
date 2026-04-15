@@ -86,9 +86,9 @@ def load_config(
         for a in agents_data
     ]
 
-    if len(agents) != 12:
+    if len(agents) < 2:
         raise ValueError(
-            f"agents.yaml must define exactly 12 agents, got {len(agents)}"
+            f"agents file must define at least 2 agents, got {len(agents)}"
         )
 
     names = [a.name for a in agents]

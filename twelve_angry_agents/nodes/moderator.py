@@ -56,12 +56,13 @@ def extract_vote_options(verdict_framing: str) -> list[str]:
 def build_context_check_messages(
     moderator: AgentPersona,
     topic: str,
+    num_agents: int,
 ) -> list[BaseMessage]:
     return [
         SystemMessage(content=moderator.system_prompt),
         HumanMessage(content=(
             f"Topic: {topic}\n\n"
-            "Is there enough here for 12 people to actually debate this? "
+            f"Is there enough here for {num_agents} people to actually debate this? "
             "If yes: SUFFICIENT\n"
             "If not: ask 2-3 direct questions, one per line, numbered. "
             "Only ask what you genuinely need — don't pad it."
@@ -129,6 +130,7 @@ def context_gather_node(state: DebateState, config: RunnableConfig) -> dict:
     messages = build_context_check_messages(
         moderator=cfg.moderator,
         topic=state["topic"],
+        num_agents=len(cfg.agents),
     )
     response = llm.invoke(messages)
     content = response.content.strip()

@@ -52,7 +52,7 @@ debate:
   context_summary_threshold: 0.75
 """)
 
-    # Only 1 agent — should raise
+    # Only 1 agent — should raise (minimum is 2)
     agents_yaml.write_text("""
 moderator:
   name: The Foreman
@@ -62,7 +62,7 @@ agents:
     system_prompt: "You question everything."
 """)
 
-    with pytest.raises(ValueError, match="exactly 12"):
+    with pytest.raises(ValueError, match="at least 2"):
         load_config(config_path=config_yaml, agents_path=agents_yaml)
 
 
