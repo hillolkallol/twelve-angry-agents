@@ -69,6 +69,8 @@ taa --output debate.txt "Should I accept this acquisition offer?"
 taa --max-rounds 10 "Should we raise a Series A now or wait 12 months?"
 ```
 
+> **Tip:** The debate is only as good as the details you give it. Include your constraints, context, and what's already on your mind — the more specific, the sharper the arguments. A one-liner gets a generic debate; a paragraph gets a real one.
+
 > **Note:** If your topic contains a `$` sign (e.g. `$40k`), use single quotes or escape it — otherwise the shell will expand it as a variable:
 > ```bash
 > taa 'I have $40k saved — should I invest it all?'
