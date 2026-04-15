@@ -85,7 +85,7 @@ See [`examples/food-truck-debate.md`](examples/food-truck-debate.md) for a full 
 ## How It Works
 
 1. The **Foreman** gathers any missing context with 2-3 targeted questions
-2. All 12 agents cast a **blind vote** — no peer influence
+2. All agents cast a **blind vote** — no peer influence
 3. If split: agents **debate sequentially**, each reading the full argument history
 4. After each round, all agents re-vote
 5. Repeat until **unanimous** (or a hung jury after the round limit)
@@ -108,11 +108,31 @@ See [`examples/food-truck-debate.md`](examples/food-truck-debate.md) for a full 
 | The Realist | What's actually true right now |
 | The Contrarian | Last holdout — hardest to move |
 
+## Built-in Juries
+
+Ready-to-use agent configurations for specific decision types. Pass them with `--agents`:
+
+| File | Best for | Agents |
+|------|----------|--------|
+| [`config/agents/startup.yaml`](config/agents/startup.yaml) | Fundraising, pivots, strategic decisions | CEO, CFO, CTO, Head of Sales, VC Investor, Legal Counsel, COO |
+| [`config/agents/engineering.yaml`](config/agents/engineering.yaml) | Architecture, tech stack, technical tradeoffs | Backend, Frontend, DevOps/SRE, Security, Architect, Tech Lead, QA, PM, EM |
+| [`config/agents/product.yaml`](config/agents/product.yaml) | Features, roadmap bets, design choices | PM, UX, Engineer, Data Scientist, CS Manager, Sales Lead, CEO, Customer Advocate, Competitor Analyst |
+| [`config/agents/investment.yaml`](config/agents/investment.yaml) | Stocks, assets, portfolio allocation | Value, Growth, Risk Manager, Macro Economist, Financial Planner, Tax Strategist, Behavioral Economist, VC, Contrarian |
+| [`config/agents/life.yaml`](config/agents/life.yaml) | Career changes, relocations, major life decisions | Therapist, Financial Advisor, Life Coach, Career Counselor, Pragmatist Friend, Optimist, Cynic, Mentor, Realist |
+
+```bash
+taa --agents config/agents/startup.yaml "Should we raise a Series A now or wait 12 months?"
+taa --agents config/agents/engineering.yaml "Should we rewrite the auth service in Go?"
+taa --agents config/agents/product.yaml "Should we build a native mobile app or stick with the web?"
+taa --agents config/agents/investment.yaml 'Should I put $50k into index funds or real estate?'
+taa --agents config/agents/life.yaml "Should I quit my job and move abroad?"
+```
+
 ## Custom Agent Personalities
 
-You can replace the default jury with any 12 personas you want — domain experts, historical figures, fictional characters, or role-specific reviewers.
+You can create your own jury with any number of agents (minimum 2) and a moderator.
 
-Create a `my_agents.yaml` file with exactly 12 agents and a moderator:
+Create a `my_agents.yaml` file:
 
 ```yaml
 moderator:
@@ -137,7 +157,7 @@ agents:
       State your VOTE clearly at the start: VOTE: [option].
       Keep your response under 200 words.
 
-  # ... 10 more agents
+  # add as many agents as make sense for your use case
 ```
 
 Then run it:
@@ -146,7 +166,7 @@ Then run it:
 taa --agents my_agents.yaml "Should we rebuild the platform or migrate incrementally?"
 ```
 
-The config validates that exactly 12 agents are defined. Each agent needs a `name` and a `system_prompt`.
+Each agent needs a `name` and a `system_prompt`.
 
 ## Configuration
 
